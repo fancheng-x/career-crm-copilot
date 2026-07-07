@@ -1,7 +1,7 @@
 """Add Note page."""
 import datetime, json
 import streamlit as st
-from .. import db, llm, embeddings, ingest
+from .. import db, llm, embeddings, ingest, eval_extraction
 from ..config import ANTHROPIC_API_KEY, TAG_VOCABULARY, PRIORITY_LEVELS, RELATIONSHIP_STRENGTHS
 
 DEMO_NOTE = """Met two people at an ACL side event tonight.
@@ -137,6 +137,13 @@ def _render_review(extraction, raw_text):
         except Exception as e:
             st.error(f"Save failed: {e}")
             return
+        # Measure extraction quality: how the LLM's output compared to what you saved.
+        # Logging must never block a save, so it's best-effort.
+        try:
+            ev = eval_extraction.diff_counts(extraction, edited, summary, insights)
+            db.add_extraction_eval(**ev, model=st.session_state.get("model_id"))
+        except Exception:
+            pass
         st.success(
             f"Saved {counts['contacts']} new contact(s), "
             f"attached {counts['attached']} to existing, "

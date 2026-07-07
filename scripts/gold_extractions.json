@@ -1,0 +1,34 @@
+[
+  {
+    "raw_text": "Had coffee with Maria Chen, a senior data scientist at Stripe. She spent 4 years at Airbnb before Stripe, working on fraud analytics. We talked about moving from analytics into ML platform work, and how she broke into fintech. Follow up: send her my dashboard project.",
+    "expected": {
+      "contacts": [
+        {
+          "name": "Maria Chen",
+          "title": "Senior Data Scientist",
+          "company": "Stripe",
+          "background": "Spent 4 years at Airbnb on fraud analytics before Stripe"
+        }
+      ],
+      "companies": [
+        {"name": "Stripe"}
+      ]
+    }
+  },
+  {
+    "raw_text": "Quick call with Dev Patel (founder & CEO of NimbusAI, a seed-stage AI infra startup). Ex-Google, worked on TPU compilers. NimbusAI builds an inference-optimization layer for LLM serving. He's hiring a forward-deployed engineer. Action: intro him to my classmate who does MLOps.",
+    "expected": {
+      "contacts": [
+        {
+          "name": "Dev Patel",
+          "title": "Founder & CEO",
+          "company": "NimbusAI",
+          "background": "Ex-Google, worked on TPU compilers"
+        }
+      ],
+      "companies": [
+        {"name": "NimbusAI", "stage": "seed", "industry": "AI infrastructure"}
+      ]
+    }
+  }
+]

@@ -324,3 +324,26 @@ def _render_quality():
             else:
                 st.metric(label, "No data")
                 st.caption("0 ratings yet")
+
+    _render_extraction_quality()
+
+
+def _render_extraction_quality():
+    """Extraction accuracy measured from your edits on the Add Note review screen."""
+    ex = db.extraction_eval_stats()
+    st.markdown("**✏️ Extraction quality** — measured from your edits on 📥 Add Note")
+    if not ex["saves"]:
+        st.caption("Save a note on Add Note to measure how often you correct the LLM's extraction.")
+        return
+    acc, corr, miss = ex["accuracy"], ex["correction_rate"], ex["miss_rate"]
+    c1, c2, c3 = st.columns(3)
+    with c1.container(border=True):
+        st.metric("Accuracy", f"{acc * 100:.0f}%" if acc is not None else "No data")
+        st.caption(f"{ex['kept']}/{ex['populated']} fields kept as-is")
+    with c2.container(border=True):
+        st.metric("Correction rate", f"{corr * 100:.0f}%" if corr is not None else "No data")
+        st.caption(f"edited {ex['edited']} · removed {ex['over']}")
+    with c3.container(border=True):
+        st.metric("Miss rate", f"{miss * 100:.0f}%" if miss is not None else "No data")
+        st.caption(f"{ex['missed']} field(s) you added")
+    st.caption(f"Across {ex['saves']} saved note(s).")

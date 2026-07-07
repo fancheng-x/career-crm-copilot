@@ -50,7 +50,8 @@ need a restart.
   Records are clickable — jump straight to the contact. Shows a **"Start here"** guide on an empty DB.
 - **Add Note → structured extraction.** Paste any free text; Claude returns contacts, companies,
   a summary, key insights, and a follow-up draft. Save each contact as **new** or **attach to an
-  existing contact** (no duplicates — the picker auto-detects same-name contacts).
+  existing contact** (no duplicates — the picker auto-detects same-name contacts). Every edit you
+  make on the review screen is logged as extraction-quality feedback (accuracy / correction rate).
 - **Import from Notion CSV.** Column-mapping UI with auto-guessing; unmapped columns are preserved
   into notes. Coffee-chat notes can be run through the same LLM extraction row-by-row.
 - **Contacts / Applications.** Filterable tables (priority, tags, company, relationship, status…),
@@ -137,19 +138,21 @@ streamlit run app.py        # or, with the shell alias: career-crm
 ```
 career-crm/
 ├── app.py                     # Streamlit entry: sidebar nav + model picker + routing
-├── requirements.txt · .env.example · .gitignore
+├── requirements.txt · .env.example · .gitignore · LICENSE
 ├── .streamlit/config.toml     # green theme
 ├── data/                      # SQLite DB (gitignored)
+├── scripts/                   # eval_extraction.py + gold_extractions.json (offline benchmark)
 └── src/
     ├── config.py              # env keys, model list, tag vocabulary + synonyms, paths
     ├── db.py                  # schema (contacts/companies/applications/interactions/documents/
-    │                          #   tasks/agent_log/feedback/emb_cache) + CRUD, queries, agent-write
+    │                          #   tasks/agent_log/feedback/extraction_eval/emb_cache) + CRUD, agent-write
     │                          #   helpers, dedup/merge, tag + priority normalisation
     ├── llm.py                 # Claude: extraction, search synthesis, decision memo, follow-up
     ├── agent.py               # action agent: read tools + propose_plan + apply_plan + undo_plan
     ├── ingest.py              # shared write path (Add Note + Import both use it)
     ├── retrieval.py           # hybrid retrieval (keyword + embedding) + vector index build
     ├── embeddings.py          # OpenAI embeddings + blob/cosine helpers (powers hybrid search)
+    ├── eval_extraction.py     # extracted-vs-saved diff → extraction-quality counts
     ├── exporting.py           # CSV export
     ├── ui.py                  # small UI helpers (tag chips, feedback thumbs widget)
     └── pages_ui/              # one render() per page: home, assistant, add_note,
@@ -185,6 +188,17 @@ time and produces trustworthy output — the way an AI product/analytics team wo
 memo each carry a 👍/👎 control; the ratings are stored locally and the resulting positive-rate
 metrics are shown on the **Dashboard → AI quality** panel.
 
+**Extraction quality is measured two ways:**
+
+- **Online (from real usage):** the Add Note review screen shows the LLM's raw extraction in
+  editable fields, so every edit you make before saving is a free ground-truth correction. The app
+  diffs the extracted values against what you actually save and logs an **accuracy / correction rate /
+  miss rate** (shown on the Dashboard). The more you use it, the more precise the metric — no separate
+  labelling needed.
+- **Offline (cold-start benchmark):** `scripts/eval_extraction.py` runs extraction over a hand-labelled
+  gold set (`scripts/gold_extractions.json`) and reports entity recall/precision, field accuracy, and a
+  hallucination rate — a stable benchmark you can cite before enough usage accrues.
+
 ## Status & roadmap
 
 **Done:**
@@ -192,7 +206,8 @@ metrics are shown on the **Dashboard → AI quality** panel.
 - **Core workflow:** dashboard, Notion CSV import (+ attach-to-existing), add note, contacts /
   applications with filters and profile/JD drill-down, search, insights, follow-up, CSV export.
 - **AI layer:** structured extraction, hybrid (semantic + keyword) search, weekly decision memo,
-  LinkedIn/WeChat/email follow-ups, model picker, feedback ratings + a measured AI-quality panel.
+  LinkedIn/WeChat/email follow-ups, model picker, feedback ratings + a measured AI-quality panel,
+  extraction-quality instrumentation (online correction rate + an offline gold-set benchmark).
 - **Agent safety:** a confirm-before-write action agent, an audit log, and persistent multi-step undo.
 - **Data quality:** contact dedup / merge, tag + priority normalisation, verbatim notes.
 - **Outcomes:** an application outcome funnel (response rate, offer rate) and a "Start here" onboarding block.

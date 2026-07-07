@@ -101,6 +101,16 @@ CREATE TABLE IF NOT EXISTS feedback (
     model TEXT
 );
 
+CREATE TABLE IF NOT EXISTS extraction_eval (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT,
+    kept INTEGER,                 -- LLM filled a field, user kept it as-is (correct)
+    edited INTEGER,               -- LLM filled a field, user changed the value
+    over INTEGER,                 -- LLM filled a field, user cleared it (over-extraction)
+    missed INTEGER,               -- LLM left a field empty, user filled it in (a miss)
+    model TEXT
+);
+
 CREATE TABLE IF NOT EXISTS emb_cache (
     kind TEXT,                    -- contact / application / interaction
     source_id INTEGER,
@@ -651,6 +661,44 @@ def feedback_stats():
         agg[r["kind"]] = (up + (1 if r["rating"] == 1 else 0), total + 1)
     return {k: {"up": up, "total": total, "rate": (up / total if total else 0)}
             for k, (up, total) in agg.items()}
+
+
+# --- Extraction quality (online correction-rate instrumentation) ------------
+
+def add_extraction_eval(*, kept, edited, over, missed, model=None):
+    """Log one Add-Note save: how the LLM's extraction compared to what the user
+    actually saved. The user's edits on the review screen are the ground truth."""
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO extraction_eval (ts, kept, edited, over, missed, model) "
+            "VALUES (?,?,?,?,?,?)",
+            (datetime.datetime.now().isoformat(timespec="seconds"),
+             int(kept), int(edited), int(over), int(missed), model))
+
+
+def extraction_eval_stats():
+    """Aggregate extraction quality across all saved notes.
+
+    - accuracy        = kept / populated (fields the LLM filled and the user left alone)
+    - correction_rate = (edited + over) / populated (fields the user fixed or removed)
+    - miss_rate       = missed / (populated + missed) (fields the LLM left for the user)
+    Rates are None when their denominator is 0.
+    """
+    with get_conn() as conn:
+        rows = conn.execute("SELECT kept, edited, over, missed FROM extraction_eval").fetchall()
+    kept = sum(r["kept"] for r in rows)
+    edited = sum(r["edited"] for r in rows)
+    over = sum(r["over"] for r in rows)
+    missed = sum(r["missed"] for r in rows)
+    populated = kept + edited + over
+    return {
+        "saves": len(rows),
+        "kept": kept, "edited": edited, "over": over, "missed": missed,
+        "populated": populated,
+        "accuracy": (kept / populated) if populated else None,
+        "correction_rate": ((edited + over) / populated) if populated else None,
+        "miss_rate": (missed / (populated + missed)) if (populated + missed) else None,
+    }
 
 
 # --- Embedding cache (semantic search) --------------------------------------
