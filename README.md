@@ -8,30 +8,35 @@ and measured AI quality.
 
 ---
 
-## 速览（这是什么 / 怎么用）
+## Quick tour (what it is / how to use it)
 
-**一句话**：把你散落在 Notion 里的求职信息（申请、人脉、coffee chat 笔记）集中到一个本地小 app，
-让 AI 帮你**抽取结构、看总览、搜索、总结、写跟进**。
+**In one line:** consolidate the job-search data scattered across your Notion (applications,
+contacts, coffee-chat notes) into one local app, and let AI **structure it, summarize it,
+search it, and draft your follow-ups**.
 
-**9 个页面（左侧导航）**：
+**Nine pages (left sidebar):**
 
-| 页面 | 作用 |
+| Page | What it does |
 |---|---|
-| 🏠 **Home / Dashboard** | 总览:指标卡、分布图(按 status / industry / base / priority)、Tasks + 待跟进清单、最近 coffee chats(可点击跳转)、一键本周 digest。 |
-| 🤖 **Assistant** | 用大白话下命令改数据(改 priority、加 tag、建提醒/任务、attach 笔记…)。它先找准对象、遇到重名会**反问**,并把要改的**列成计划让你确认后才落库**。 |
-| ✏️ **Add Note** | 粘贴自由文本 → LLM 抽出联系人/公司/总结/insights/跟进草稿 → 确认保存。可**挂到已有联系人**(不重复)。 |
-| ⬆️ **Import** | 上传 Notion 导出的 CSV 批量导入;没映射的列自动保留进 notes,不丢信息。 |
-| 👤 **Contacts** | 表格 + 筛选 + 点行看完整档案和 **coffee chat 历史**;💬 标记谁聊过;可直接存**逐字笔记**并展开看全文;可删除、导出 CSV。 |
-| 💼 **Applications** | 表格 + 筛选 + 点行看完整 JD / fit notes;可删除、清空、导出 CSV。 |
-| 🔍 **Search** | 大白话提问 → **hybrid(语义 + 关键词)检索** + LLM 重排,给理由、证据引用和建议动作。有 OpenAI key 时点一下建索引即可启用语义。 |
-| 💡 **Insights** | 一键总结最近 interactions:主题、定位信号、空白、下一步重点。 |
-| ✉️ **Follow-up** | 选联系人 → 生成可编辑的 **LinkedIn / WeChat / 邮件** 跟进草稿。 |
+| 🏠 **Home / Dashboard** | Overview: KPI cards, distribution charts (by status / industry / base / priority), an action center (tasks + pending follow-ups), recent coffee chats (click to jump), and a one-click weekly memo. |
+| 🤖 **Assistant** | Change data with plain-language commands (set priority, add a tag, create a reminder/task, attach a note…). It resolves who you mean, **asks when a name is ambiguous**, and turns every change into a **plan you confirm before it writes**. |
+| ✏️ **Add Note** | Paste free text → the LLM extracts contacts / companies / summary / insights / a follow-up draft → confirm to save. Can **attach to an existing contact** (no duplicates). |
+| ⬆️ **Import** | Bulk-import CSVs exported from Notion; unmapped columns are preserved into notes so nothing is lost. |
+| 👤 **Contacts** | Filterable table → click a row for the full profile and **coffee-chat history**; 💬 marks who you've talked to; store **verbatim notes** and expand the full text; delete or export to CSV. |
+| 💼 **Applications** | Filterable table → click a row for the full JD / fit notes; delete, clear, or export to CSV. |
+| 🔍 **Search** | Ask in plain language → **hybrid (semantic + keyword) retrieval** + LLM re-ranking, with reasons, evidence quotes, and suggested actions. With an OpenAI key, one click builds the index to enable semantic search. |
+| 💡 **Insights** | One click summarizes recent interactions: themes, positioning signals, gaps, and next-step priorities. |
+| ✉️ **Follow-up** | Pick a contact → generate an editable **LinkedIn / WeChat / email** follow-up draft. |
 
-**怎么打开**（已配好别名）：终端输入 `career-crm` → 浏览器开 `http://localhost:8501`。停止按 Ctrl+C。
+**How to open** (alias preconfigured): run `career-crm` in the terminal → open
+`http://localhost:8501` in the browser. Press Ctrl+C to stop.
 
-**切换模型**：侧边栏底部有 **Claude model** 下拉,可选任意 Claude 模型(opus / sonnet / haiku…),所有 AI 功能都用你选的那个。
+**Switch models:** a **Claude model** dropdown at the bottom of the sidebar lets you pick any
+Claude model (opus / sonnet / haiku…); every AI feature uses the one you select.
 
-**数据在哪**：全部存本地 `data/career_crm.db`（SQLite），不上传任何地方。改代码点浏览器 "Rerun";改主题/`.env`/装库要重启。
+**Where the data lives:** everything is stored locally in `data/career_crm.db` (SQLite) and is
+never uploaded. Code edits → click "Rerun" in the browser; theme / `.env` / dependency changes
+need a restart.
 
 ---
 
@@ -82,9 +87,10 @@ principle that matters for real enterprise-AI / field-deployment work: an AI sys
 2. For each coffee chat, either paste the notes into **Add Note** (AI extracts a summary + insights
    and attaches them to the existing contact) or open the contact and **add the note verbatim** —
    both are readable later under the contact's interaction history ("Full note").
-3. Use the **🤖 Assistant** to change data in plain language — e.g. "把 Lauren 改成 high priority，
-   下周五提醒 follow up" or "给没回音超两周的申请加 tag 'no response'". It resolves who/what you
-   mean, asks if ambiguous, and shows a plan you **confirm before it writes** (one-step **undo** available).
+3. Use the **🤖 Assistant** to change data in plain language — e.g. "set Lauren to high priority
+   and remind me to follow up next Friday" or "tag applications with no response for over two weeks
+   as 'no response'". It resolves who/what you mean, asks if ambiguous, and shows a plan you
+   **confirm before it writes** (one-step **undo** available).
 4. Use the **Dashboard** for a daily overview (tasks, to-dos, distributions), **Search** / **Insights**
    to reason across everything, and **Follow-up** to draft outreach. Rate AI outputs with 👍/👎
    to populate the Dashboard's AI-quality panel. Export filtered lists for a coach.
