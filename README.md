@@ -2,9 +2,9 @@
 
 Career CRM Copilot is a local AI workflow system that turns fragmented job-search data —
 networking notes, job descriptions, coffee-chat recaps, and follow-ups — into structured
-relationship intelligence and recommended next actions. Built on Claude, with entity
-extraction, hybrid search, a decision-memo dashboard, a confirm-before-write action agent,
-and measured AI quality.
+relationship intelligence and recommended next actions. LLM-powered (built on Claude), with
+entity extraction, hybrid search, a decision-memo dashboard, a confirm-before-write action
+agent, and measured AI quality.
 
 ---
 
@@ -156,10 +156,12 @@ career-crm/
                                #   import_page, contacts, applications, search, insights, follow_up
 ```
 
-## Evaluation — AI workflow quality metrics
+## Evaluation — measuring AI quality & pipeline outcomes
 
-I treat this as an **AI-feature evaluation problem, not just a feature build**. The metrics I track
-to judge whether the AI features are genuinely useful:
+I treat this as an **AI-feature evaluation problem, not just a feature build** — and separate two
+different kinds of metric: how good the *AI features* are, versus how the *job search itself* is going.
+
+**AI feature quality** — is each AI output trustworthy and time-saving?
 
 | Metric | Definition | Target |
 |---|---|---|
@@ -168,7 +170,13 @@ to judge whether the AI features are genuinely useful:
 | **Follow-up draft acceptance** | drafts usable with only light edits | ≥ 70% |
 | **Time saved per note** | time to structure one coffee-chat note vs. by hand | < 3 min (vs. 10–15) |
 | **Insight value** | actionable insights per weekly digest | ≥ 3 |
-| **Response / offer rate** | applications that got a reply / an offer (outcome funnel) | tracked over time |
+
+**Career pipeline outcome** — is the overall search actually converting?
+
+| Metric | Definition | Target |
+|---|---|---|
+| **Response rate** | applications that got a reply, out of those that reached a decision | tracked over time |
+| **Offer rate** | offers out of resolved applications | tracked over time |
 
 Framing the project around these metrics keeps the focus on whether each AI feature actually saves
 time and produces trustworthy output — the way an AI product/analytics team would evaluate it.
@@ -179,15 +187,15 @@ metrics are shown on the **Dashboard → AI quality** panel.
 
 ## Status & roadmap
 
-**Done:** dashboard, action agent (Assistant) with confirm-before-write + tasks/reminders,
-weekly **decision memo**, agent **audit log + persistent multi-step undo**, contact **dedup / merge**,
-**feedback ratings** with a measured AI-quality panel, an **application outcome funnel** (response /
-offer rate), **hybrid (semantic + keyword) search**, Notion
-CSV import, attach-to-existing, verbatim notes, filters, profile/JD drill-down, delete/clear, CSV
-export, tag chips, green theme, model picker, LinkedIn/WeChat/email follow-ups.
+**Done:**
 
-Plus **tag + priority normalisation** (data hygiene — canonicalises tag synonyms and the
-High/Medium/Low casing mix from the Notion import) and a **"Start here" onboarding** block on the Dashboard.
+- **Core workflow:** dashboard, Notion CSV import (+ attach-to-existing), add note, contacts /
+  applications with filters and profile/JD drill-down, search, insights, follow-up, CSV export.
+- **AI layer:** structured extraction, hybrid (semantic + keyword) search, weekly decision memo,
+  LinkedIn/WeChat/email follow-ups, model picker, feedback ratings + a measured AI-quality panel.
+- **Agent safety:** a confirm-before-write action agent, an audit log, and persistent multi-step undo.
+- **Data quality:** contact dedup / merge, tag + priority normalisation, verbatim notes.
+- **Outcomes:** an application outcome funnel (response rate, offer rate) and a "Start here" onboarding block.
 
 **Next:** driven by real usage — collect feedback ratings over a few weeks to populate the AI-quality
 metrics, then iterate on whatever the data shows is weakest. A possible net-new feature is résumé ↔ JD
