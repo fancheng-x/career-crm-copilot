@@ -1,0 +1,7 @@
+# Muted, harmonious green theme.
+[theme]
+primaryColor = "#2f8367"              # muted teal-green — buttons, active nav, accents
+backgroundColor = "#ffffff"           # main background
+secondaryBackgroundColor = "#eef4f0"  # sidebar / cards / table — soft green-gray
+textColor = "#1e2a25"                 # dark green-gray text
+font = "sans serif"
