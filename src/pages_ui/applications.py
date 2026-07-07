@@ -4,6 +4,7 @@ import json
 import streamlit as st
 
 from .. import db, exporting, ui
+from ..config import APPLICATION_OUTCOMES, OUTCOME_DISPLAY
 
 
 def _parse_list(raw):
@@ -133,6 +134,22 @@ def _render_detail(app_id):
     cols[1].markdown(f"**Applied:** {a.get('applied_date') or '—'}")
     tags = _parse_list(a.get("tags"))
     cols[2].markdown("**Tags:** " + (ui.tag_chips(tags) if tags else "—"))
+
+    # Outcome — the terminal result, feeds the Dashboard funnel (response/offer rate).
+    cur = (a.get("outcome") or "pending").strip()
+    if cur not in APPLICATION_OUTCOMES:
+        cur = "pending"
+    new = st.selectbox(
+        "Outcome", APPLICATION_OUTCOMES, index=APPLICATION_OUTCOMES.index(cur),
+        format_func=lambda o: OUTCOME_DISPLAY.get(o, o.title()),
+        key=f"outcome_{app_id}",
+        help="How this application ended. Drives the Dashboard's response & offer rates.",
+    )
+    if new != cur:
+        with db.get_conn() as conn:
+            db.set_application_field(conn, app_id, "outcome", new)
+        st.toast(f"Outcome → {OUTCOME_DISPLAY.get(new, new)}")
+        st.rerun()
 
     if a.get("fit_notes"):
         with st.expander("Fit notes / positioning / imported columns", expanded=True):

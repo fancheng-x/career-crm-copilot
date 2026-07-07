@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS applications (
     status TEXT,                  -- applied / phone screen / rejected / offer
     applied_date TEXT,            -- ISO date
     fit_notes TEXT,
-    tags TEXT                     -- JSON array
+    tags TEXT,                    -- JSON array
+    outcome TEXT DEFAULT 'pending' -- terminal disposition (see config.APPLICATION_OUTCOMES)
 );
 
 CREATE TABLE IF NOT EXISTS interactions (
@@ -137,8 +138,16 @@ def get_conn():
 def init_db():
     with get_conn() as conn:
         conn.executescript(SCHEMA)
+        _migrate(conn)
     normalize_all_tags()
     normalize_all_priorities()
+
+
+def _migrate(conn):
+    """Additive migrations for DBs created before a column existed. Idempotent."""
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(applications)").fetchall()}
+    if "outcome" not in cols:
+        conn.execute("ALTER TABLE applications ADD COLUMN outcome TEXT DEFAULT 'pending'")
 
 
 def normalize_all_priorities():
@@ -188,12 +197,12 @@ def add_company(conn, *, name, stage, industry, product_area, tags, notes):
 
 
 def add_application(conn, *, role_title, company, jd_text, status,
-                    applied_date, fit_notes, tags):
+                    applied_date, fit_notes, tags, outcome="pending"):
     cur = conn.execute(
         """INSERT INTO applications
-           (role_title, company, jd_text, status, applied_date, fit_notes, tags)
-           VALUES (?,?,?,?,?,?,?)""",
-        (role_title, company, jd_text, status, applied_date, fit_notes, tags),
+           (role_title, company, jd_text, status, applied_date, fit_notes, tags, outcome)
+           VALUES (?,?,?,?,?,?,?,?)""",
+        (role_title, company, jd_text, status, applied_date, fit_notes, tags, outcome),
     )
     return cur.lastrowid
 
@@ -462,6 +471,7 @@ _EDITABLE_CONTACT_FIELDS = {
 
 _EDITABLE_APPLICATION_FIELDS = {
     "role_title", "company", "status", "applied_date", "fit_notes", "jd_text",
+    "outcome",
 }
 
 
@@ -479,6 +489,34 @@ def set_application_field(conn, application_id, field, value):
         raise ValueError(f"Field '{field}' is not editable.")
     conn.execute(f"UPDATE applications SET {field} = ? WHERE id = ?",
                  (value, application_id))
+
+
+def application_outcome_stats():
+    """Counts by outcome plus response & offer rates for the Dashboard funnel.
+
+    - response_rate = replies (interview/offer/rejected) / applications that were
+      "reachable" (those three + ghosted). Pending & withdrawn are excluded — you
+      can't have a response rate on apps that haven't resolved or you pulled out of.
+    - offer_rate    = offers / resolved applications (everything except pending &
+      withdrawn). Returns None for a rate when its denominator is 0.
+    """
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT COALESCE(NULLIF(TRIM(outcome), ''), 'pending') AS o FROM applications"
+        ).fetchall()
+    counts = {}
+    for r in rows:
+        counts[r["o"]] = counts.get(r["o"], 0) + 1
+    total = sum(counts.values())
+    responded = counts.get("interview", 0) + counts.get("offer", 0) + counts.get("rejected", 0)
+    reachable = responded + counts.get("ghosted", 0)
+    resolved = total - counts.get("pending", 0) - counts.get("withdrawn", 0)
+    return {
+        "counts": counts,
+        "total": total,
+        "response_rate": (responded / reachable) if reachable else None,
+        "offer_rate": (counts.get("offer", 0) / resolved) if resolved else None,
+    }
 
 
 def restore_row(conn, table, snapshot):

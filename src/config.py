@@ -71,6 +71,14 @@ PRIORITY_LEVELS = ["high", "medium", "low"]
 RELATIONSHIP_STRENGTHS = ["warm", "cold", "met once"]
 APPLICATION_STATUSES = ["applied", "phone screen", "rejected", "offer"]
 
+# Application OUTCOME — the terminal disposition, a separate axis from the
+# pipeline `status`. "pending" = still open / no final result yet. Powers the
+# Dashboard funnel (response rate, offer rate) so the loop from AI-assisted
+# outreach to real job-search results can actually be measured.
+APPLICATION_OUTCOMES = ["pending", "interview", "offer", "rejected", "ghosted", "withdrawn"]
+OUTCOME_DISPLAY = {"pending": "Pending", "interview": "Interview", "offer": "Offer",
+                   "rejected": "Rejected", "ghosted": "Ghosted", "withdrawn": "Withdrawn"}
+
 # Tag hygiene: map obvious variants to a canonical form (keys are lowercased).
 # Conservative on purpose — only clear equivalents, so custom tags survive.
 TAG_SYNONYMS = {

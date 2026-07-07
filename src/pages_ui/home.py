@@ -8,7 +8,8 @@ import pandas as pd
 import streamlit as st
 
 from .. import db, llm
-from ..config import ANTHROPIC_API_KEY, normalize_priority, PRIORITY_DISPLAY
+from ..config import (ANTHROPIC_API_KEY, normalize_priority, PRIORITY_DISPLAY,
+                      OUTCOME_DISPLAY)
 
 
 def _parse_list(raw):
@@ -165,6 +166,9 @@ def render():
             pri[lab] = pri.get(lab, 0) + 1
         _bar("Contacts by priority", pri)
 
+    if applications:
+        _render_outcomes()
+
     st.divider()
     _render_quality()
 
@@ -276,6 +280,25 @@ def _render_digest():
         st.caption(memo["positioning_shift"])
     for a in (memo.get("next_actions") or [])[:3]:
         st.markdown(f"- {a}")
+
+
+def _render_outcomes():
+    """Funnel outcome panel: response rate, offer rate, and a breakdown bar."""
+    s = db.application_outcome_stats()
+    if not s["total"]:
+        return
+    st.markdown("**🎯 Application outcomes**")
+    rr, orr = s["response_rate"], s["offer_rate"]
+    m1, m2 = st.columns(2)
+    with m1.container(border=True):
+        st.metric("Response rate", f"{rr * 100:.0f}%" if rr is not None else "No data")
+        st.caption("got a reply ÷ apps that reached a decision")
+    with m2.container(border=True):
+        st.metric("Offer rate", f"{orr * 100:.0f}%" if orr is not None else "No data")
+        st.caption("offers ÷ resolved apps")
+    disp = {OUTCOME_DISPLAY.get(k, k.title()): v for k, v in s["counts"].items()}
+    _bar("By outcome", disp)
+    st.caption("Set an outcome on each row in 💼 Applications to populate this.")
 
 
 _QUALITY_KINDS = [

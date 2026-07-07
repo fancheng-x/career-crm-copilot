@@ -23,7 +23,7 @@ search it, and draft your follow-ups**.
 | ✏️ **Add Note** | Paste free text → the LLM extracts contacts / companies / summary / insights / a follow-up draft → confirm to save. Can **attach to an existing contact** (no duplicates). |
 | ⬆️ **Import** | Bulk-import CSVs exported from Notion; unmapped columns are preserved into notes so nothing is lost. |
 | 👤 **Contacts** | Filterable table → click a row for the full profile and **coffee-chat history**; 💬 marks who you've talked to; store **verbatim notes** and expand the full text; delete or export to CSV. |
-| 💼 **Applications** | Filterable table → click a row for the full JD / fit notes; delete, clear, or export to CSV. |
+| 💼 **Applications** | Filterable table → click a row for the full JD / fit notes; set an **outcome** (pending / interview / offer / rejected / ghosted / withdrawn); delete, clear, or export to CSV. |
 | 🔍 **Search** | Ask in plain language → **hybrid (semantic + keyword) retrieval** + LLM re-ranking, with reasons, evidence quotes, and suggested actions. With an OpenAI key, one click builds the index to enable semantic search. |
 | 💡 **Insights** | One click summarizes recent interactions: themes, positioning signals, gaps, and next-step priorities. |
 | ✉️ **Follow-up** | Pick a contact → generate an editable **LinkedIn / WeChat / email** follow-up draft. |
@@ -45,7 +45,8 @@ need a restart.
 - **Dashboard.** KPI cards; an **Action center** (open tasks, high-priority contacts with no
   next action, and pending follow-ups); **Recent intelligence** (latest coffee chats + a one-click
   weekly decision memo); a **Pipeline** view of distribution bar charts (applications by status /
-  industry / base, contacts by priority); and an **AI quality** panel measured from your feedback.
+  industry / base, contacts by priority) plus an **outcomes funnel** (response rate, offer rate,
+  breakdown by outcome); and an **AI quality** panel measured from your feedback.
   Records are clickable — jump straight to the contact. Shows a **"Start here"** guide on an empty DB.
 - **Add Note → structured extraction.** Paste any free text; Claude returns contacts, companies,
   a summary, key insights, and a follow-up draft. Save each contact as **new** or **attach to an
@@ -55,7 +56,9 @@ need a restart.
 - **Contacts / Applications.** Filterable tables (priority, tags, company, relationship, status…),
   click a row to open a full profile / interaction history / JD, delete single rows or clear all,
   and export the filtered view to CSV. Tags render as chips. On a contact you can also **add a note
-  verbatim (no AI)** and read the **full text** of any interaction via a "Full note" expander.
+  verbatim (no AI)** and read the **full text** of any interaction via a "Full note" expander. Each
+  application carries an **outcome** (pending / interview / offer / rejected / ghosted / withdrawn)
+  that feeds the Dashboard's response-rate and offer-rate funnel.
 - **Search.** **Hybrid retrieval** — keyword scoring blended with OpenAI-embedding semantic
   similarity (build/refresh a cached vector index from the Search page; falls back to keyword-only
   without a key) — across contacts + applications + interactions, then Claude re-ranks and
@@ -165,6 +168,7 @@ to judge whether the AI features are genuinely useful:
 | **Follow-up draft acceptance** | drafts usable with only light edits | ≥ 70% |
 | **Time saved per note** | time to structure one coffee-chat note vs. by hand | < 3 min (vs. 10–15) |
 | **Insight value** | actionable insights per weekly digest | ≥ 3 |
+| **Response / offer rate** | applications that got a reply / an offer (outcome funnel) | tracked over time |
 
 Framing the project around these metrics keeps the focus on whether each AI feature actually saves
 time and produces trustworthy output — the way an AI product/analytics team would evaluate it.
@@ -177,7 +181,8 @@ metrics are shown on the **Dashboard → AI quality** panel.
 
 **Done:** dashboard, action agent (Assistant) with confirm-before-write + tasks/reminders,
 weekly **decision memo**, agent **audit log + persistent multi-step undo**, contact **dedup / merge**,
-**feedback ratings** with a measured AI-quality panel, **hybrid (semantic + keyword) search**, Notion
+**feedback ratings** with a measured AI-quality panel, an **application outcome funnel** (response /
+offer rate), **hybrid (semantic + keyword) search**, Notion
 CSV import, attach-to-existing, verbatim notes, filters, profile/JD drill-down, delete/clear, CSV
 export, tag chips, green theme, model picker, LinkedIn/WeChat/email follow-ups.
 
