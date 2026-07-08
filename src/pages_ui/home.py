@@ -103,11 +103,20 @@ def render():
     todos = [c for c in contacts if (c.get("next_action") or "").strip()]
 
     # --- KPI cards ----------------------------------------------------------
+    _kpi_nav = {
+        "Contacts": "Contacts",
+        "Coffee chats": "Contacts",
+        "Applications": "Applications",
+        "Open follow-ups": "Follow-up",
+    }
     kpis = [("Contacts", len(contacts)), ("Coffee chats", len(chat_counts)),
             ("Applications", len(applications)), ("Open follow-ups", len(todos))]
     for col, (label, val) in zip(st.columns(4), kpis):
         with col.container(border=True):
             st.metric(label, val)
+            if st.button("View →", key=f"kpi_{label}", use_container_width=True):
+                st.session_state.nav_target = _kpi_nav[label]
+                st.rerun()
 
     if not contacts and not applications:
         _render_start_here()
