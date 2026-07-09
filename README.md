@@ -128,6 +128,9 @@ cp .env.example .env        # then edit and paste your real key
 streamlit run app.py        # or, with the shell alias: career-crm
 ```
 
+> **Extending the app?** See [DEVELOPING.md](DEVELOPING.md) for architecture, the core patterns
+> (confirm-before-write agent, shared write path, migrations), and how to style Streamlit reliably.
+
 ## Data & privacy
 
 - Everything is **local**: the SQLite DB and your `.env` never leave your machine.
@@ -138,6 +141,7 @@ streamlit run app.py        # or, with the shell alias: career-crm
 ```
 career-crm/
 ├── app.py                     # Streamlit entry: sidebar nav + model picker + routing
+├── README.md · DEVELOPING.md  # user/portfolio guide · builder's guide (architecture, styling)
 ├── requirements.txt · .env.example · .gitignore · LICENSE
 ├── .streamlit/config.toml     # green theme
 ├── data/                      # SQLite DB (gitignored)
