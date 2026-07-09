@@ -112,7 +112,7 @@ def render():
     kpis = [("Contacts", len(contacts)), ("Coffee chats", len(chat_counts)),
             ("Applications", len(applications)), ("Open follow-ups", len(todos))]
     for col, (label, val) in zip(st.columns(4), kpis):
-        with col.container(border=True):
+        with col.container(border=True, key=f"scard_kpi_{label.replace(' ', '_')}"):
             st.metric(label, val)
             if st.button("View →", key=f"kpi_{label}", use_container_width=True):
                 st.session_state.nav_target = _kpi_nav[label]
@@ -187,7 +187,7 @@ def _render_tasks(tasks):
     if not tasks:
         st.caption("No open tasks — create one from the 🤖 Assistant.")
     for t in tasks[:5]:
-        with st.container(border=True):
+        with st.container(border=True, key=f"scard_task_{t['id']}"):
             check, body = st.columns([0.09, 0.91], vertical_alignment="center")
             if check.checkbox("done", key=f"task_{t['id']}", value=False,
                               label_visibility="collapsed"):
@@ -223,7 +223,7 @@ def _render_hp_no_action(contacts):
         st.caption("None — every high-priority contact has a next action. 🎉")
         return
     for c in hp[:4]:
-        with st.container(border=True):
+        with st.container(border=True, key=f"scard_hpna_{c['id']}"):
             body, btn = st.columns([0.78, 0.22], vertical_alignment="center")
             head = c["name"] + (f" · {c['company']}" if c.get("company") else "")
             body.markdown(f"**{head}**")
@@ -237,7 +237,7 @@ def _render_followups(todos):
         st.caption("No pending next-actions.")
         return
     for c in todos[:5]:
-        with st.container(border=True):
+        with st.container(border=True, key=f"scard_todo_{c['id']}"):
             body, btn = st.columns([0.78, 0.22], vertical_alignment="center")
             head = c["name"] + (f" · {c['company']}" if c.get("company") else "")
             body.markdown(f"**{head}**")
@@ -252,7 +252,7 @@ def _render_recent(interactions):
         st.caption("No coffee chats logged yet.")
         return
     for it in recent:
-        with st.container(border=True):
+        with st.container(border=True, key=f"scard_recent_{it['id']}"):
             body, btn = st.columns([0.78, 0.22], vertical_alignment="center")
             head = " · ".join(filter(None, [it.get("contact_name") or "unknown",
                                             it.get("date")]))
@@ -299,10 +299,10 @@ def _render_outcomes():
     st.markdown("**🎯 Application outcomes**")
     rr, orr = s["response_rate"], s["offer_rate"]
     m1, m2 = st.columns(2)
-    with m1.container(border=True):
+    with m1.container(border=True, key="scard_out_resp"):
         st.metric("Response rate", f"{rr * 100:.0f}%" if rr is not None else "No data")
         st.caption("got a reply ÷ apps that reached a decision")
-    with m2.container(border=True):
+    with m2.container(border=True, key="scard_out_offer"):
         st.metric("Offer rate", f"{orr * 100:.0f}%" if orr is not None else "No data")
         st.caption("offers ÷ resolved apps")
     disp = {OUTCOME_DISPLAY.get(k, k.title()): v for k, v in s["counts"].items()}
@@ -326,7 +326,7 @@ def _render_quality():
                    "to populate these metrics.")
     for col, (kind, label) in zip(st.columns(len(_QUALITY_KINDS)), _QUALITY_KINDS):
         s = stats.get(kind)
-        with col.container(border=True):
+        with col.container(border=True, key=f"scard_q_{kind}"):
             if s and s["total"]:
                 st.metric(label, f"{s['rate'] * 100:.0f}%")
                 st.caption(f"{s['up']}/{s['total']} 👍")
@@ -346,13 +346,13 @@ def _render_extraction_quality():
         return
     acc, corr, miss = ex["accuracy"], ex["correction_rate"], ex["miss_rate"]
     c1, c2, c3 = st.columns(3)
-    with c1.container(border=True):
+    with c1.container(border=True, key="scard_ex_acc"):
         st.metric("Accuracy", f"{acc * 100:.0f}%" if acc is not None else "No data")
         st.caption(f"{ex['kept']}/{ex['populated']} fields kept as-is")
-    with c2.container(border=True):
+    with c2.container(border=True, key="scard_ex_corr"):
         st.metric("Correction rate", f"{corr * 100:.0f}%" if corr is not None else "No data")
         st.caption(f"edited {ex['edited']} · removed {ex['over']}")
-    with c3.container(border=True):
+    with c3.container(border=True, key="scard_ex_miss"):
         st.metric("Miss rate", f"{miss * 100:.0f}%" if miss is not None else "No data")
         st.caption(f"{ex['missed']} field(s) you added")
     st.caption(f"Across {ex['saves']} saved note(s).")

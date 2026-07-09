@@ -94,7 +94,7 @@ def _render_synthesis(answer):
         return
     for i, r in enumerate(results):
         icon = _KIND_ICON.get(r.get("kind", ""), "•")
-        with st.container(border=True):
+        with st.container(border=True, key=f"scard_search_{i}"):
             st.markdown(f"### {icon} {r.get('title', '(untitled)')}")
             if r.get("why_relevant"):
                 st.markdown(f"**Why relevant:** {r['why_relevant']}")

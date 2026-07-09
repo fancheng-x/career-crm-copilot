@@ -20,6 +20,30 @@ from src.pages_ui import (
 
 st.set_page_config(page_title="Career CRM Copilot", page_icon="🧭", layout="wide")
 
+# Give bordered containers (KPI cards, tasks, outcome tiles…) a soft, restrained
+# shadow so the dashboard reads as layered cards rather than flat outlines. The
+# tint is derived from the theme's text colour (#1e2a25) so it stays harmonious;
+# hover deepens the shadow slightly without lifting, so lists don't jump.
+# Give card containers a soft, restrained shadow. Streamlit testids for the
+# bordered container changed across versions, so instead of guessing one we tag
+# each card with key="scard_…"; Streamlit then emits a stable `st-key-scard_…`
+# class we can target reliably. The shadow tint derives from the theme text
+# colour (#1e2a25); hover deepens it slightly without lifting, so lists sit still.
+_CARD_CSS = """
+<style>
+[class*="st-key-scard"] {
+    border: 1px solid rgba(30, 42, 37, 0.08) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 1px 2px rgba(30, 42, 37, 0.06), 0 2px 8px rgba(30, 42, 37, 0.08) !important;
+    transition: box-shadow 160ms ease;
+}
+[class*="st-key-scard"]:hover {
+    box-shadow: 0 2px 6px rgba(30, 42, 37, 0.09), 0 8px 20px rgba(30, 42, 37, 0.12) !important;
+}
+</style>
+"""
+st.markdown(_CARD_CSS, unsafe_allow_html=True)
+
 # label -> (render function, bootstrap icon name)
 PAGES = {
     "Home": (home.render, "house"),

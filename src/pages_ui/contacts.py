@@ -197,7 +197,7 @@ def _render_detail(contact_id):
         return
 
     for it in interactions:
-        with st.container(border=True):
+        with st.container(border=True, key=f"scard_int_{it['id']}"):
             head = " · ".join(filter(None, [it.get("date"), it.get("context")]))
             st.markdown(f"**{head}**")
             if it.get("summary"):
