@@ -1,9 +1,11 @@
 """Contacts view — table of all contacts + click-into profile & interaction history."""
+import datetime
 import json
 
 import streamlit as st
 
 from .. import db, exporting, ui
+from ..config import RELATIONSHIP_STRENGTHS, PRIORITY_LEVELS
 
 
 def _parse_list(raw):
@@ -50,11 +52,41 @@ def _filter_contacts(rows, counts):
     return out
 
 
+def _render_add_form():
+    """Manual, deterministic way to add a contact (no LLM)."""
+    with st.expander("➕ Add a contact"):
+        with st.form("add_contact", clear_on_submit=True):
+            name = st.text_input("Name")
+            c1, c2 = st.columns(2)
+            title = c1.text_input("Title")
+            company = c2.text_input("Company")
+            c3, c4 = st.columns(2)
+            rel = c3.selectbox("Relationship", RELATIONSHIP_STRENGTHS, index=2)
+            priority = c4.selectbox("Priority", PRIORITY_LEVELS, index=1)
+            background = st.text_area("Background (optional)", height=80)
+            next_action = st.text_input("Next action (optional)")
+            submitted = st.form_submit_button("Add contact", type="primary")
+        if submitted:
+            if not name.strip():
+                st.warning("A contact needs a name.")
+                return
+            today = datetime.date.today().isoformat()
+            with db.get_conn() as conn:
+                db.add_contact(
+                    conn, name=name.strip(), title=title.strip(), company=company.strip(),
+                    background=background.strip(), source_event="",
+                    relationship_strength=rel, tags="[]", last_interaction_date=today,
+                    next_action=next_action.strip(), priority=priority, raw_notes="")
+            st.success(f"Added: {name.strip()}")
+            st.rerun()
+
+
 def render():
     st.header("👤 Contacts")
+    _render_add_form()
     all_rows = db.list_contacts()
     if not all_rows:
-        st.info("No contacts yet. Add a note from 📥 Add Note, or import from 📤 Import.")
+        st.info("No contacts yet. Add one above ⬆️, from 📥 Add Note, or import from 📤 Import.")
         return
 
     _render_dedup()

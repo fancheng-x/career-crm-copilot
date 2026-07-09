@@ -53,7 +53,8 @@ PROPOSE_PLAN = {
                     "properties": {
                         "action": {
                             "type": "string",
-                            "enum": ["set_contact_field", "set_application_field",
+                            "enum": ["create_contact", "create_application",
+                                     "set_contact_field", "set_application_field",
                                      "add_tag", "remove_tag", "create_task", "attach_note"],
                         },
                         "summary": {"type": "string",
@@ -71,9 +72,20 @@ PROPOSE_PLAN = {
                                    "description": "The new value for the field."},
                         "tag": {"type": "string"},
                         "note_text": {"type": "string"},
-                        "title": {"type": "string"},
+                        "title": {"type": "string",
+                                   "description": "Task title (create_task) or contact title/role "
+                                                  "(create_contact)."},
                         "due_date": {"type": "string", "description": "ISO date YYYY-MM-DD"},
                         "contact_id": {"type": "integer"},
+                        "name": {"type": "string",
+                                  "description": "Contact name — required for create_contact."},
+                        "role_title": {"type": "string",
+                                        "description": "Role title — for create_application."},
+                        "company": {"type": "string",
+                                     "description": "Company name — for create_contact / create_application."},
+                        "status": {"type": "string",
+                                    "description": "Application status for create_application "
+                                                   "(e.g. applied); defaults to 'applied'."},
                     },
                     "required": ["action", "summary"],
                 },
@@ -90,7 +102,10 @@ def _system():
     today = datetime.date.today()
     return (
         "You are an action assistant for a personal job-search CRM. The user issues "
-        "commands to UPDATE their data (contacts, applications, tasks). You can change "
+        "commands to CREATE or UPDATE their data (contacts, applications, tasks). "
+        "To add records, use create_contact (needs name; optional title, company) or "
+        "create_application (needs role_title and/or company; optional status, default 'applied'). "
+        "You can change "
         "contact fields via set_contact_field (priority, relationship_strength e.g. 'Tier 1', "
         "next_action, title, company, source_event, background) and application fields via "
         "set_application_field (status, applied_date, role_title, company, fit_notes, "
@@ -195,7 +210,9 @@ def apply_plan(actions):
              (field edits, tag changes, created tasks). attach_note is NOT undoable.
     """
     done = []
-    undo = {"contacts": [], "applications": [], "created_task_ids": [], "attach_notes": 0}
+    undo = {"contacts": [], "applications": [], "created_task_ids": [],
+            "created_contact_ids": [], "created_application_ids": [], "attach_notes": 0}
+    today = datetime.date.today().isoformat()
 
     # Which rows will direct writes touch (for before-snapshots)?
     touched_contacts, touched_apps = set(), set()
@@ -221,7 +238,28 @@ def apply_plan(actions):
             if t == "attach_note":
                 continue  # handled below (own extraction + connection); not undoable
             n = 0
-            if t == "set_contact_field":
+            if t == "create_contact":
+                name = (a.get("name") or "").strip()
+                if name:
+                    cid = db.add_contact(
+                        conn, name=name, title=a.get("title", "") or "",
+                        company=a.get("company", "") or "", background="", source_event="",
+                        relationship_strength="met once", tags="[]",
+                        last_interaction_date=today, next_action="",
+                        priority="medium", raw_notes="")
+                    undo["created_contact_ids"].append(cid)
+                    n = 1
+            elif t == "create_application":
+                role = (a.get("role_title") or a.get("title") or "").strip()
+                company = (a.get("company") or "").strip()
+                if role or company:
+                    aid = db.add_application(
+                        conn, role_title=role, company=company, jd_text="",
+                        status=(a.get("status") or "applied"), applied_date=today,
+                        fit_notes="", tags="[]")
+                    undo["created_application_ids"].append(aid)
+                    n = 1
+            elif t == "set_contact_field":
                 for cid in _cids(a):
                     db.set_contact_field(conn, cid, a.get("field", ""), a.get("value", ""))
                     n += 1
@@ -250,7 +288,10 @@ def apply_plan(actions):
                 n = 1
             summary = a.get("summary") or t
             if n == 0 and t != "create_task":
-                summary += "  ⚠️ (no matching records — nothing changed)"
+                if t in ("create_contact", "create_application"):
+                    summary += "  ⚠️ (missing required fields — nothing created)"
+                else:
+                    summary += "  ⚠️ (no matching records — nothing changed)"
             done.append(summary)
 
     # attach_note: extract the note and attach the interaction to the contact.
@@ -286,4 +327,8 @@ def undo_plan(undo):
             db.restore_row(conn, "applications", snap)
         for tid in undo.get("created_task_ids", []):
             conn.execute("DELETE FROM tasks WHERE id = ?", (tid,))
+        for cid in undo.get("created_contact_ids", []):
+            conn.execute("DELETE FROM contacts WHERE id = ?", (cid,))
+        for aid in undo.get("created_application_ids", []):
+            conn.execute("DELETE FROM applications WHERE id = ?", (aid,))
     return undo.get("attach_notes", 0)

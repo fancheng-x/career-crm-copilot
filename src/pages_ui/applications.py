@@ -1,10 +1,11 @@
 """Applications view — table of applications + click-into full JD & fit notes."""
+import datetime
 import json
 
 import streamlit as st
 
 from .. import db, exporting, ui
-from ..config import APPLICATION_OUTCOMES, OUTCOME_DISPLAY
+from ..config import APPLICATION_OUTCOMES, OUTCOME_DISPLAY, APPLICATION_STATUSES
 
 
 def _parse_list(raw):
@@ -52,9 +53,10 @@ def _filter_applications(rows):
 
 def render():
     st.header("💼 Applications")
+    _render_add_form()
     all_rows = db.list_applications()
     if not all_rows:
-        st.info("No applications yet. Paste a JD from 📥 Add Note, or import from 📤 Import.")
+        st.info("No applications yet. Add one above ⬆️, or import from 📤 Import.")
         return
 
     rows = _filter_applications(all_rows)
@@ -114,6 +116,32 @@ def render():
                 st.session_state.pop("app_sel_id", None)
                 st.success("Cleared. Re-import from 📤 Import.")
                 st.rerun()
+
+
+def _render_add_form():
+    """Manual, deterministic way to add an application (no LLM)."""
+    with st.expander("➕ Add an application"):
+        with st.form("add_app", clear_on_submit=True):
+            role = st.text_input("Role title")
+            company = st.text_input("Company")
+            c1, c2 = st.columns(2)
+            status = c1.selectbox("Status", APPLICATION_STATUSES, index=0)
+            applied = c2.date_input("Applied date", value=datetime.date.today())
+            jd = st.text_area("Job description (optional)", height=100)
+            fit = st.text_area("Fit notes (optional)", height=80)
+            submitted = st.form_submit_button("Add application", type="primary")
+        if submitted:
+            if not role.strip() and not company.strip():
+                st.warning("Enter at least a role title or a company.")
+                return
+            with db.get_conn() as conn:
+                db.add_application(
+                    conn, role_title=role.strip(), company=company.strip(),
+                    jd_text=jd.strip(), status=status,
+                    applied_date=applied.isoformat() if applied else "",
+                    fit_notes=fit.strip(), tags="[]")
+            st.success(f"Added: {role.strip() or company.strip()}")
+            st.rerun()
 
 
 def _on_pick(label_to_id):

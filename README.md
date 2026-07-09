@@ -19,11 +19,11 @@ search it, and draft your follow-ups**.
 | Page | What it does |
 |---|---|
 | 🏠 **Home / Dashboard** | Overview: KPI cards, distribution charts (by status / industry / base / priority), an action center (tasks + pending follow-ups), recent coffee chats (click to jump), and a one-click weekly memo. |
-| 🤖 **Assistant** | Change data with plain-language commands (set priority, add a tag, create a reminder/task, attach a note…). It resolves who you mean, **asks when a name is ambiguous**, and turns every change into a **plan you confirm before it writes**. |
+| 🤖 **Assistant** | Create or change data with plain-language commands (add a contact/application, set priority, add a tag, create a reminder/task, attach a note…). It resolves who you mean, **asks when a name is ambiguous**, and turns every change into a **plan you confirm before it writes**. |
 | ✏️ **Add Note** | Paste free text → the LLM extracts contacts / companies / summary / insights / a follow-up draft → confirm to save. Can **attach to an existing contact** (no duplicates). |
 | ⬆️ **Import** | Bulk-import CSVs exported from Notion; unmapped columns are preserved into notes so nothing is lost. |
-| 👤 **Contacts** | Filterable table → click a row for the full profile and **coffee-chat history**; 💬 marks who you've talked to; store **verbatim notes** and expand the full text; delete or export to CSV. |
-| 💼 **Applications** | Filterable table → click a row for the full JD / fit notes; set an **outcome** (pending / interview / offer / rejected / ghosted / withdrawn); delete, clear, or export to CSV. |
+| 👤 **Contacts** | **➕ Add a contact** manually; filterable table → click a row for the full profile and **coffee-chat history**; 💬 marks who you've talked to; store **verbatim notes** and expand the full text; delete or export to CSV. |
+| 💼 **Applications** | **➕ Add an application** manually; filterable table → click a row for the full JD / fit notes; set an **outcome** (pending / interview / offer / rejected / ghosted / withdrawn); delete, clear, or export to CSV. |
 | 🔍 **Search** | Ask in plain language → **hybrid (semantic + keyword) retrieval** + LLM re-ranking, with reasons, evidence quotes, and suggested actions. With an OpenAI key, one click builds the index to enable semantic search. |
 | 💡 **Insights** | One click summarizes recent interactions: themes, positioning signals, gaps, and next-step priorities. |
 | ✉️ **Follow-up** | Pick a contact → generate an editable **LinkedIn / WeChat / email** follow-up draft. |
@@ -68,9 +68,10 @@ need a restart.
   positioning signals, gaps, and recommended next actions.
 - **Follow-up generator.** Editable LinkedIn / WeChat / email draft per contact, grounded in their
   background + your positioning + your chosen goal.
-- **Action agent (Assistant).** Natural-language commands that mutate the CRM via Claude tool
-  use: it resolves which records you mean (asking when a name is ambiguous), then proposes a
-  **plan you confirm before anything is written**. Backed by a `tasks` table for reminders/to-dos.
+- **Action agent (Assistant).** Natural-language commands that create or mutate the CRM via Claude
+  tool use — add a contact/application, set fields, tag, create tasks, attach notes. It resolves which
+  records you mean (asking when a name is ambiguous), then proposes a **plan you confirm before
+  anything is written**, with undo. Backed by a `tasks` table for reminders/to-dos.
 - **Model picker.** Switch the Claude model for all AI features from the sidebar.
 
 ## Highlight — a confirm-before-write action agent
