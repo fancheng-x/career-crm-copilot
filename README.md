@@ -20,7 +20,7 @@ search it, and draft your follow-ups**.
 |---|---|
 | 🏠 **Home / Dashboard** | Overview: KPI cards, distribution charts (by status / industry / base / priority), an action center (tasks + pending follow-ups), recent coffee chats (click to jump), and a one-click weekly memo. |
 | 🤖 **Assistant** | Create or change data with plain-language commands (add a contact/application, set priority, add a tag, create a reminder/task, attach a note…). It resolves who you mean, **asks when a name is ambiguous**, and turns every change into a **plan you confirm before it writes**. |
-| ✏️ **Add Note** | Paste free text → the LLM extracts contacts / companies / summary / insights / a follow-up draft → confirm to save. Can **attach to an existing contact** (no duplicates). |
+| ✏️ **Add Note** | Paste free text → the LLM **detects the type** and extracts contacts / companies / **applications (a pasted JD = a role you've applied to)** / summary / insights / a follow-up draft → confirm to save. Can **attach to an existing contact** (no duplicates). |
 | ⬆️ **Import** | Bulk-import CSVs exported from Notion; unmapped columns are preserved into notes so nothing is lost. |
 | 👤 **Contacts** | **➕ Add a contact** manually; filterable table → click a row for the full profile and **coffee-chat history**; 💬 marks who you've talked to; store **verbatim notes** and expand the full text; delete or export to CSV. |
 | 💼 **Applications** | **➕ Add an application** manually; filterable table → click a row for the full JD / fit notes; set an **outcome** (pending / interview / offer / rejected / ghosted / withdrawn); delete, clear, or export to CSV. |
@@ -48,8 +48,9 @@ need a restart.
   industry / base, contacts by priority) plus an **outcomes funnel** (response rate, offer rate,
   breakdown by outcome); and an **AI quality** panel measured from your feedback.
   Records are clickable — jump straight to the contact. Shows a **"Start here"** guide on an empty DB.
-- **Add Note → structured extraction.** Paste any free text; Claude returns contacts, companies,
-  a summary, key insights, and a follow-up draft. Save each contact as **new** or **attach to an
+- **Add Note → structured extraction.** Paste any free text; Claude decides what it is and returns
+  contacts, companies, **applications** (a pasted job description is saved as a role you've *applied*
+  to), a summary, key insights, and a follow-up draft. Save each contact as **new** or **attach to an
   existing contact** (no duplicates — the picker auto-detects same-name contacts). Every edit you
   make on the review screen is logged as extraction-quality feedback (accuracy / correction rate).
 - **Import from Notion CSV.** Column-mapping UI with auto-guessing; unmapped columns are preserved

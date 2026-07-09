@@ -14,16 +14,40 @@ from .config import normalize_tags
 def save_extraction(payload: dict, raw_text: str) -> dict:
     """Persist a normalized extraction payload.
 
-    payload keys: contacts[], companies[], interaction_summary, key_insights[].
-    Returns counts: {"contacts", "companies", "interactions"}.
+    payload keys: contacts[], companies[], applications[], interaction_summary, key_insights[].
+    Returns counts: {"contacts", "attached", "companies", "applications", "interactions"}.
     """
     today = datetime.date.today().isoformat()
     summary = payload.get("interaction_summary", "") or ""
     insights = payload.get("key_insights", []) or []
     insights_json = json.dumps(insights)
-    counts = {"contacts": 0, "attached": 0, "companies": 0, "interactions": 0}
+    counts = {"contacts": 0, "attached": 0, "companies": 0,
+              "applications": 0, "interactions": 0}
 
     with db.get_conn() as conn:
+        for ap in payload.get("applications", []):
+            role = (ap.get("role_title") or "").strip()
+            company = (ap.get("company") or "").strip()
+            if not role and not company:
+                continue
+            # Pasting a JD means the user applied → default status "applied", dated today.
+            aid = db.add_application(
+                conn, role_title=role, company=company,
+                jd_text=(ap.get("jd_text") or raw_text or "").strip(),
+                status=ap.get("status") or "applied",
+                applied_date=ap.get("applied_date") or today,
+                fit_notes=(ap.get("fit_notes") or "").strip(),
+                tags=json.dumps(normalize_tags(ap.get("tags", []))),
+            )
+            counts["applications"] += 1
+            jd_doc = " | ".join(filter(None, [
+                role, company, ap.get("fit_notes") or "", ap.get("jd_text") or ""]))
+            db.add_document(
+                conn, doc_type="jd", source_id=aid, raw_text=jd_doc,
+                embedding=embeddings.to_blob(embeddings.embed_text(jd_doc)),
+                created_date=today,
+            )
+
         for co in payload.get("companies", []):
             name = (co.get("name") or "").strip()
             if not name:

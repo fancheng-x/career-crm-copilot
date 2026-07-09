@@ -29,7 +29,12 @@ SYSTEM_PROMPT = (
     "You are a career CRM assistant. The user pastes raw notes from their job "
     "search — a coffee chat recap, a job description, contact info, event notes, "
     "or a mix. Extract structured entities and return them by calling the "
-    "save_extraction tool. Prefer tags from the controlled vocabulary, but you "
+    "save_extraction tool. First decide what the note is: "
+    "(a) a job description / posting → put it in `applications` (the user pasting a "
+    "JD means they have applied); "
+    "(b) a person's info or a coffee-chat recap → put the person in `contacts` and "
+    "summarise the conversation in `interaction_summary` + `key_insights`. "
+    "A note can be a mix. Prefer tags from the controlled vocabulary, but you "
     "may add a few precise tags outside it when clearly warranted. Be faithful to "
     "the notes; do not invent facts. Leave a field empty if the notes don't "
     "support it."
@@ -90,6 +95,23 @@ EXTRACTION_TOOL = {
                     "required": ["name"],
                 },
             },
+            "applications": {
+                "type": "array",
+                "description": "Job descriptions / postings the note is about. Pasting a JD "
+                               "means the user has applied — no status is needed.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "role_title": {"type": "string"},
+                        "company": {"type": "string"},
+                        "jd_text": {"type": "string",
+                                     "description": "The job description text (condense if very long)."},
+                        "fit_notes": {"type": "string",
+                                       "description": "Why it fits / any gaps, only if the note says so."},
+                        "tags": {"type": "array", "items": {"type": "string"}},
+                    },
+                },
+            },
             "interaction_summary": {
                 "type": "string",
                 "description": "2-3 sentence summary of the interaction/notes.",
@@ -137,6 +159,7 @@ def _normalize(data: dict) -> dict:
     data.setdefault("type", "mixed")
     data.setdefault("contacts", [])
     data.setdefault("companies", [])
+    data.setdefault("applications", [])
     data.setdefault("interaction_summary", "")
     data.setdefault("key_insights", [])
     for c in data["contacts"]:
@@ -156,6 +179,12 @@ def _normalize(data: dict) -> dict:
         co.setdefault("industry", "")
         co.setdefault("product_area", "")
         co.setdefault("tags", [])
+    for ap in data["applications"]:
+        ap.setdefault("role_title", "")
+        ap.setdefault("company", "")
+        ap.setdefault("jd_text", "")
+        ap.setdefault("fit_notes", "")
+        ap.setdefault("tags", [])
     return data
 
 

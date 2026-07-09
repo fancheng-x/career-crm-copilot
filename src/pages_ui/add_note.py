@@ -2,7 +2,8 @@
 import datetime, json
 import streamlit as st
 from .. import db, llm, embeddings, ingest, eval_extraction
-from ..config import ANTHROPIC_API_KEY, TAG_VOCABULARY, PRIORITY_LEVELS, RELATIONSHIP_STRENGTHS
+from ..config import (ANTHROPIC_API_KEY, TAG_VOCABULARY, PRIORITY_LEVELS,
+                      RELATIONSHIP_STRENGTHS, APPLICATION_STATUSES)
 
 DEMO_NOTE = """Met two people at an ACL side event tonight.
 
@@ -54,7 +55,7 @@ def _render_review(extraction, raw_text):
     st.divider()
     st.subheader("Review & edit")
     st.write(f"**Detected type:** `{extraction.get('type', 'mixed')}`")
-    edited = {"contacts": [], "companies": []}
+    edited = {"contacts": [], "companies": [], "applications": []}
 
     st.markdown("### 👤 Contacts")
     existing = db.list_contacts()
@@ -122,6 +123,29 @@ def _render_review(extraction, raw_text):
             tags         = st.multiselect("Tags", _tag_options(co.get("tags",[])), default=co.get("tags",[]), key=f"x_co_tags_{i}")
             edited["companies"].append({"name":name,"stage":stage,"industry":industry,"product_area":prod_area,"tags":tags})
 
+    applications = extraction.get("applications", [])
+    if applications:
+        st.markdown("### 💼 Applications")
+        st.caption("A pasted JD is saved as an application you've **applied** to. Adjust below.")
+        for i, ap in enumerate(applications):
+            label = ap.get("role_title") or ap.get("company") or "(role)"
+            with st.expander(f"Application {i+1}: {label}", expanded=True):
+                role    = st.text_input("Role title", value=ap.get("role_title",""), key=f"x_a_role_{i}")
+                company = st.text_input("Company",    value=ap.get("company",""),    key=f"x_a_co_{i}")
+                col1, col2 = st.columns(2)
+                with col1:
+                    status = st.selectbox("Status", APPLICATION_STATUSES, index=0, key=f"x_a_status_{i}")
+                with col2:
+                    applied = st.date_input("Applied date", value=datetime.date.today(), key=f"x_a_date_{i}")
+                fit     = st.text_area("Fit notes",       value=ap.get("fit_notes",""), key=f"x_a_fit_{i}", height=70)
+                jd      = st.text_area("Job description",  value=ap.get("jd_text",""),   key=f"x_a_jd_{i}", height=110)
+                tags    = st.multiselect("Tags", _tag_options(ap.get("tags",[])), default=ap.get("tags",[]), key=f"x_a_tags_{i}")
+                edited["applications"].append({
+                    "role_title": role, "company": company, "status": status,
+                    "applied_date": applied.isoformat() if applied else "",
+                    "fit_notes": fit, "jd_text": jd, "tags": tags,
+                })
+
     st.markdown("### 🧠 Summary & insights")
     summary       = st.text_area("Interaction summary",      value=extraction.get("interaction_summary",""),           height=80,  key="x_summary")
     insights_text = st.text_area("Key insights (one per line)", value="\n".join(extraction.get("key_insights",[])), height=120, key="x_insights")
@@ -147,6 +171,7 @@ def _render_review(extraction, raw_text):
         st.success(
             f"Saved {counts['contacts']} new contact(s), "
             f"attached {counts['attached']} to existing, "
+            f"{counts['applications']} application(s), "
             f"{counts['interactions']} interaction(s), "
             f"{counts['companies']} company(ies)."
         )
@@ -159,6 +184,7 @@ def _save(edited, summary, insights, raw_text):
     return ingest.save_extraction({
         "contacts": edited["contacts"],
         "companies": edited["companies"],
+        "applications": edited["applications"],
         "interaction_summary": summary,
         "key_insights": insights,
     }, raw_text)

@@ -56,7 +56,8 @@ def render():
     _render_add_form()
     all_rows = db.list_applications()
     if not all_rows:
-        st.info("No applications yet. Add one above ⬆️, or import from 📤 Import.")
+        st.info("No applications yet. Add one above ⬆️, paste a JD in 📥 Add Note, "
+                "or import from 📤 Import.")
         return
 
     rows = _filter_applications(all_rows)

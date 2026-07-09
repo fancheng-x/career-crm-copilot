@@ -19,6 +19,8 @@ _CONTACT_NEW_SCALARS = ["name", "title", "company", "background",
 # In "attach to existing" mode only these are shown for editing.
 _CONTACT_ATTACH_SCALARS = ["next_action", "follow_up_draft"]
 _COMPANY_SCALARS = ["name", "stage", "industry", "product_area"]
+# status/applied_date are excluded — they carry UI defaults the user never "typed".
+_APPLICATION_SCALARS = ["role_title", "company", "fit_notes", "jd_text"]
 
 
 def _norm(v):
@@ -87,6 +89,13 @@ def diff_counts(extraction, edited, summary, insights):
         for fld in _COMPANY_SCALARS:
             bump(_classify(rco.get(fld), eco.get(fld)))
         bump(_classify_list(rco.get("tags"), eco.get("tags")))
+
+    raw_apps = extraction.get("applications") or []
+    for i, ea in enumerate(edited.get("applications") or []):
+        ra = raw_apps[i] if i < len(raw_apps) else {}
+        for fld in _APPLICATION_SCALARS:
+            bump(_classify(ra.get(fld), ea.get(fld)))
+        bump(_classify_list(ra.get("tags"), ea.get("tags")))
 
     bump(_classify(extraction.get("interaction_summary"), summary))
     bump(_classify_list(extraction.get("key_insights"), insights))
