@@ -179,6 +179,15 @@ def _render_detail(app_id):
         st.toast(f"Status → {STATUS_DISPLAY.get(new, new)}")
         st.rerun()
 
+    hist = db.status_history_for(app_id)
+    if hist:
+        with st.expander(f"🕑 Status history ({len(hist)})"):
+            for h in hist:
+                to = STATUS_DISPLAY.get(normalize_status(h["to_status"]), h["to_status"])
+                frm = (STATUS_DISPLAY.get(normalize_status(h["from_status"]))
+                       if (h["from_status"] or "").strip() else "created")
+                st.markdown(f"- `{(h['ts'] or '')[:10]}`  {frm} → **{to}**")
+
     if a.get("fit_notes"):
         with st.expander("Fit notes / positioning / imported columns", expanded=True):
             st.write(a["fit_notes"])

@@ -311,6 +311,15 @@ def _render_funnel():
     ordered = {STATUS_DISPLAY[k]: s["counts"][k]
                for k in APPLICATION_STATUSES if s["counts"].get(k)}
     _bar("By status", ordered, preserve_order=True)
+
+    # Time-in-stage: avg days per status, over stages that were actually left.
+    tis = db.status_time_in_stage_stats()
+    days = {STATUS_DISPLAY[k]: round(tis[k]["avg_days"])
+            for k in APPLICATION_STATUSES if k in tis}
+    if days:
+        _bar("Avg days in stage (completed)", days, preserve_order=True)
+    else:
+        st.caption("Advance an application's status over time to see avg days per stage.")
     st.caption("Set each application's status on the 💼 Applications page to keep this current.")
 
 

@@ -102,6 +102,15 @@ CREATE TABLE IF NOT EXISTS feedback (
     model TEXT
 );
 
+CREATE TABLE IF NOT EXISTS status_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    application_id INTEGER,
+    from_status TEXT,             -- "" for the initial entry into the pipeline
+    to_status TEXT,
+    ts TEXT,                      -- ISO date/datetime of the transition
+    FOREIGN KEY (application_id) REFERENCES applications(id)
+);
+
 CREATE TABLE IF NOT EXISTS extraction_eval (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts TEXT,
@@ -181,6 +190,20 @@ def _migrate(conn):
                              (merged, r["id"]))
         conn.execute("PRAGMA user_version = 1")
 
+    # v2: seed the status timeline for applications created before it existed.
+    if version < 2:
+        today = datetime.date.today().isoformat()
+        for r in conn.execute("SELECT id, status, applied_date FROM applications").fetchall():
+            has = conn.execute(
+                "SELECT 1 FROM status_history WHERE application_id = ? LIMIT 1",
+                (r["id"],)).fetchone()
+            if not has:
+                conn.execute(
+                    "INSERT INTO status_history (application_id, from_status, to_status, ts) "
+                    "VALUES (?,?,?,?)",
+                    (r["id"], "", normalize_status(r["status"]), r["applied_date"] or today))
+        conn.execute("PRAGMA user_version = 2")
+
 
 def normalize_all_priorities():
     """Canonicalise contact priority casing (idempotent, changed-only)."""
@@ -236,7 +259,13 @@ def add_application(conn, *, role_title, company, jd_text, status,
            VALUES (?,?,?,?,?,?,?,?)""",
         (role_title, company, jd_text, status, applied_date, fit_notes, tags, outcome),
     )
-    return cur.lastrowid
+    aid = cur.lastrowid
+    # Seed the status timeline with the initial entry into the pipeline.
+    conn.execute(
+        "INSERT INTO status_history (application_id, from_status, to_status, ts) "
+        "VALUES (?,?,?,?)",
+        (aid, "", status, applied_date or datetime.date.today().isoformat()))
+    return aid
 
 
 def add_interaction(conn, *, contact_id, date, context, raw_notes, summary,
@@ -516,9 +545,24 @@ def set_contact_field(conn, contact_id, field, value):
 
 
 def set_application_field(conn, application_id, field, value):
-    """Set one whitelisted application field (validated — safe f-string)."""
+    """Set one whitelisted application field (validated — safe f-string).
+    A status change also appends to the status_history timeline."""
     if field not in _EDITABLE_APPLICATION_FIELDS:
         raise ValueError(f"Field '{field}' is not editable.")
+    if field == "status":
+        row = conn.execute("SELECT status FROM applications WHERE id = ?",
+                           (application_id,)).fetchone()
+        old = (row["status"] if row else "") or ""
+        if normalize_status(old) == normalize_status(value):
+            return  # no real change → no update, no history noise
+        conn.execute("UPDATE applications SET status = ? WHERE id = ?",
+                     (value, application_id))
+        conn.execute(
+            "INSERT INTO status_history (application_id, from_status, to_status, ts) "
+            "VALUES (?,?,?,?)",
+            (application_id, old, value,
+             datetime.datetime.now().isoformat(timespec="seconds")))
+        return
     conn.execute(f"UPDATE applications SET {field} = ? WHERE id = ?",
                  (value, application_id))
 
@@ -550,6 +594,51 @@ def application_funnel_stats():
         "response_rate": (responded / reachable) if reachable else None,
         "offer_rate": (offers / resolved) if resolved else None,
     }
+
+
+def status_history_for(application_id):
+    """The status timeline for one application, oldest first."""
+    with get_conn() as conn:
+        return [dict(r) for r in conn.execute(
+            "SELECT from_status, to_status, ts FROM status_history "
+            "WHERE application_id = ? ORDER BY ts, id", (application_id,)).fetchall()]
+
+
+def _parse_ts(s):
+    if not s:
+        return None
+    try:
+        return datetime.datetime.fromisoformat(s)
+    except ValueError:
+        try:
+            return datetime.datetime.fromisoformat(str(s)[:10])
+        except ValueError:
+            return None
+
+
+def status_time_in_stage_stats():
+    """Average days spent in each status, over COMPLETED durations (a stage the
+    application later left). Returns {status: {"avg_days": float, "n": int}}."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT application_id, to_status, ts FROM status_history "
+            "ORDER BY application_id, ts, id").fetchall()
+    seqs = {}
+    for r in rows:
+        seqs.setdefault(r["application_id"], []).append((r["to_status"], r["ts"]))
+    agg = {}  # status -> [total_days, count]
+    for seq in seqs.values():
+        for (status_i, ts_i), (_, ts_next) in zip(seq, seq[1:]):
+            a, b = _parse_ts(ts_i), _parse_ts(ts_next)
+            if a is None or b is None:
+                continue
+            days = (b - a).total_seconds() / 86400.0
+            if days < 0:
+                continue
+            slot = agg.setdefault(normalize_status(status_i), [0.0, 0])
+            slot[0] += days
+            slot[1] += 1
+    return {s: {"avg_days": t / n, "n": n} for s, (t, n) in agg.items() if n}
 
 
 def restore_row(conn, table, snapshot):
