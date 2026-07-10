@@ -240,12 +240,17 @@ def _render_followups(todos):
         return
     for c in todos[:5]:
         with st.container(border=True, key=f"scard_todo_{c['id']}"):
-            body, btn = st.columns([0.78, 0.22], vertical_alignment="center")
+            body, btn = st.columns([0.72, 0.28], vertical_alignment="center")
             head = c["name"] + (f" · {c['company']}" if c.get("company") else "")
             body.markdown(f"**{head}**")
             body.caption(_trunc(c["next_action"], 88))
-            if btn.button("Open", key=f"todo_{c['id']}"):
+            if btn.button("Open", key=f"todo_{c['id']}", use_container_width=True):
                 _open_contact(c["id"])
+            if btn.button("✓ Done", key=f"tododone_{c['id']}", use_container_width=True):
+                with db.get_conn() as conn:
+                    db.set_contact_field(conn, c["id"], "next_action", "")
+                st.toast(f"Cleared next action for {c['name']}")
+                st.rerun()
 
 
 def _render_recent(interactions):

@@ -70,13 +70,27 @@ def render():
     if st.session_state.get("app_sel_id") not in ids:
         st.session_state.app_sel_id = rows[0]["id"]
 
-    # Hide internal id + the retired `outcome` column; tags render as chips.
-    display = [{k: (_parse_list(v) if k == "tags" else v)
-                for k, v in r.items() if k not in ("id", "outcome")} for r in rows]
+    # Curated columns (full JD / fit notes live in the detail view) so nothing is
+    # cramped; tags render as chips. Status shows a Title-cased label.
+    cols = ["role_title", "company", "status", "applied_date", "tags"]
+    display = []
+    for r in rows:
+        d = {}
+        for k in cols:
+            if k == "tags":
+                d["tags"] = _parse_list(r.get("tags"))
+            elif k == "status":
+                d["status"] = STATUS_DISPLAY.get(normalize_status(r.get("status")), r.get("status"))
+            else:
+                d[k] = r.get(k)
+        display.append(d)
     event = st.dataframe(
         display, use_container_width=True, hide_index=True,
         on_select="rerun", selection_mode="single-row", key="apps_df",
-        column_config={"tags": st.column_config.ListColumn("Tags")},
+        column_config={
+            "role_title": "Role", "company": "Company", "status": "Status",
+            "applied_date": "Applied", "tags": st.column_config.ListColumn("Tags"),
+        },
     )
 
     export_rows = [{**{k: v for k, v in r.items() if k not in ("id", "outcome")},

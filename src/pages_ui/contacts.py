@@ -105,20 +105,23 @@ def render():
     if st.session_state.get("contact_sel_id") not in ids:
         st.session_state.contact_sel_id = rows[0]["id"]
 
-    # Table with a leading 💬 column + single-row click selection.
-    # Internal id is hidden; tags become a real list so they render as chips.
+    # Table: a curated set of columns (the rest live in the detail view) so nothing
+    # is cramped. Leading 💬 column + single-row click selection; tags → chips.
+    cols = ["name", "title", "company", "priority", "next_action", "tags"]
     display = []
     for r in rows:
         d = {"💬": (f"💬 {counts[r['id']]}" if counts.get(r["id"]) else "")}
-        for k, v in r.items():
-            if k == "id":
-                continue
-            d[k] = _parse_list(v) if k == "tags" else v
+        for k in cols:
+            d[k] = _parse_list(r.get(k)) if k == "tags" else r.get(k)
         display.append(d)
     event = st.dataframe(
         display, use_container_width=True, hide_index=True,
         on_select="rerun", selection_mode="single-row", key="contacts_df",
-        column_config={"tags": st.column_config.ListColumn("Tags")},
+        column_config={
+            "name": "Name", "title": "Title", "company": "Company",
+            "priority": "Priority", "next_action": "Next action",
+            "tags": st.column_config.ListColumn("Tags"),
+        },
     )
 
     export_rows = [{**{k: v for k, v in r.items() if k != "id"},
@@ -202,7 +205,14 @@ def _render_detail(contact_id):
     if tags:
         st.markdown("**Tags:** " + ui.tag_chips(tags))
     if c.get("next_action"):
-        st.markdown(f"**Next action:** {c['next_action']}")
+        na, done = st.columns([0.8, 0.2], vertical_alignment="center")
+        na.markdown(f"**Next action:** {c['next_action']}")
+        if done.button("✓ Done", key=f"na_done_{contact_id}",
+                       help="Mark this next action complete (clears it)."):
+            with db.get_conn() as conn:
+                db.set_contact_field(conn, contact_id, "next_action", "")
+            st.toast("Next action cleared")
+            st.rerun()
     if c.get("source_event"):
         st.caption(f"Source: {c['source_event']}")
 

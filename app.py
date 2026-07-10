@@ -31,6 +31,12 @@ st.set_page_config(page_title="Career CRM Copilot", page_icon="🧭", layout="wi
 # colour (#1e2a25); hover deepens it slightly without lifting, so lists sit still.
 _CARD_CSS = """
 <style>
+/* Enlarge the overall UI font a touch — Streamlit sizes text in rem, so nudging
+   the root scales headings, captions, buttons, and detail views together. (The
+   dataframe grid draws text on a canvas and doesn't scale — its columns are
+   trimmed instead so nothing is cramped.) */
+html { font-size: 17.5px; }
+
 [class*="st-key-scard"] {
     border: 1px solid rgba(30, 42, 37, 0.08) !important;
     border-radius: 10px !important;
