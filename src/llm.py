@@ -3,7 +3,8 @@
 Uses forced tool use to get reliable structured JSON out of the model — portable
 across model versions and cleaner than parsing free-form text.
 """
-from .config import ANTHROPIC_API_KEY, CLAUDE_MODEL, TAG_VOCABULARY, PRIORITY_LEVELS
+from .config import (ANTHROPIC_API_KEY, CLAUDE_MODEL, TAG_VOCABULARY,
+                     PRIORITY_LEVELS, USER_POSITIONING)
 
 _client = None
 
@@ -197,7 +198,8 @@ SEARCH_SYSTEM = (
     "rank_results tool. Include only genuinely relevant records — drop weak "
     "matches. For each, explain why it's relevant, quote a short piece of "
     "evidence taken verbatim from that record, and give one concrete recommended "
-    "next action. Order most-relevant first."
+    "next action. Order most-relevant first. Judge relevance and frame each "
+    "recommended action in light of the user's stated positioning / target roles."
 )
 
 SEARCH_TOOL = {
@@ -246,6 +248,7 @@ def synthesize_search(query: str, candidates: list) -> dict:
         for i, c in enumerate(candidates)
     )
     user_content = (
+        f"User's positioning / target roles: {USER_POSITIONING}\n\n"
         f"User query: {query}\n\n"
         f"Candidate records from the CRM (already keyword-matched):\n{context}"
     )
@@ -281,7 +284,10 @@ INSIGHTS_SYSTEM = (
     "item, max ~25 words. Do NOT put nested lists or (1)/(2)/(3) enumerations "
     "inside any single field. positioning_shift is at most 2 short sentences "
     "stating the shift only. Put concrete to-dos ONLY in next_actions, one action "
-    "per array item (e.g. 'Send Lauren the funnel work sample by Thu')."
+    "per array item (e.g. 'Send Lauren the funnel work sample by Thu').\n"
+    "Assess signals, opportunities, and positioning_shift RELATIVE to the user's "
+    "stated positioning / target roles (given below) — how each interaction moves "
+    "them toward or away from those roles."
 )
 
 INSIGHTS_TOOL = {
@@ -338,7 +344,8 @@ def synthesize_insights(interactions: list) -> dict:
         tools=[INSIGHTS_TOOL],
         tool_choice={"type": "tool", "name": "write_memo"},
         messages=[{"role": "user",
-                   "content": f"Recent interactions:\n\n{context}"}],
+                   "content": f"User's positioning / target roles: {USER_POSITIONING}\n\n"
+                              f"Recent interactions:\n\n{context}"}],
     )
     for block in resp.content:
         if block.type == "tool_use" and block.name == "write_memo":

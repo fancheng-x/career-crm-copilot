@@ -61,10 +61,18 @@ TAG_VOCABULARY = [
     "referral potential",
 ]
 
-# Default self-positioning used in follow-up generation (editable in the UI).
+# The user's career positioning — fed into follow-up, search, and insights so AI
+# output aligns with their real direction. Kept deliberately concise: it goes into
+# multiple prompts, so length here is a cost. Edit this to retune all three at once.
 USER_POSITIONING = (
-    "AI / Product Analytics job seeker, MSBA at UCSD, targeting AI-native "
-    "startups and tech companies."
+    "Analytics-driven product & operations problem solver focused on AI-enabled "
+    "workflows; MSBA at UCSD. Role-driven, not industry-driven. Target roles: product "
+    "analytics, product operations, operations analytics, AI/workflow analyst. Turns "
+    "ambiguous product/ops problems into metrics, experiments, simulations, and "
+    "executable recommendations; bridges business and technical (eng/data/AI) teams. "
+    "Not seeking pure SWE / MLE / AI-research / mature-PM roles. Industry-flexible, "
+    "leaning AI-native / enterprise AI, healthtech, robotics, marketplaces, and "
+    "tech-enabled operations. Based in California (Bay Area / San Diego)."
 )
 
 PRIORITY_LEVELS = ["high", "medium", "low"]
