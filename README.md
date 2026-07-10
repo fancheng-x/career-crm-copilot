@@ -23,7 +23,7 @@ search it, and draft your follow-ups**.
 | ✏️ **Add Note** | Paste free text → the LLM **detects the type** and extracts contacts / companies / **applications (a pasted JD = a role you've applied to)** / summary / insights / a follow-up draft → confirm to save. Can **attach to an existing contact** (no duplicates). |
 | ⬆️ **Import** | Bulk-import CSVs exported from Notion; unmapped columns are preserved into notes so nothing is lost. |
 | 👤 **Contacts** | **➕ Add a contact** manually; filterable table → click a row for the full profile and **coffee-chat history**; 💬 marks who you've talked to; store **verbatim notes** and expand the full text; delete or export to CSV. |
-| 💼 **Applications** | **➕ Add an application** manually; filterable table → click a row for the full JD / fit notes; set an **outcome** (pending / interview / offer / rejected / ghosted / withdrawn); delete, clear, or export to CSV. |
+| 💼 **Applications** | **➕ Add an application** manually; filterable table → click a row for the full JD / fit notes; set a single-pipeline **status** (applied → screening → interviewing → offer → accepted / rejected / ghosted / withdrawn); delete, clear, or export to CSV. |
 | 🔍 **Search** | Ask in plain language → **hybrid (semantic + keyword) retrieval** + LLM re-ranking, with reasons, evidence quotes, and suggested actions. With an OpenAI key, one click builds the index to enable semantic search. |
 | 💡 **Insights** | One click summarizes recent interactions: themes, positioning signals, gaps, and next-step priorities. |
 | ✉️ **Follow-up** | Pick a contact → generate an editable **LinkedIn / WeChat / email** follow-up draft. |
@@ -45,8 +45,8 @@ need a restart.
 - **Dashboard.** KPI cards; an **Action center** (open tasks, high-priority contacts with no
   next action, and pending follow-ups); **Recent intelligence** (latest coffee chats + a one-click
   weekly decision memo); a **Pipeline** view of distribution bar charts (applications by status /
-  industry / base, contacts by priority) plus an **outcomes funnel** (response rate, offer rate,
-  breakdown by outcome); and an **AI quality** panel measured from your feedback.
+  industry / base, contacts by priority) plus an **application funnel** (response rate, offer rate,
+  breakdown by pipeline status); and an **AI quality** panel measured from your feedback.
   Records are clickable — jump straight to the contact. Shows a **"Start here"** guide on an empty DB.
 - **Add Note → structured extraction.** Paste any free text; Claude decides what it is and returns
   contacts, companies, **applications** (a pasted job description is saved as a role you've *applied*
@@ -59,8 +59,8 @@ need a restart.
   click a row to open a full profile / interaction history / JD, delete single rows or clear all,
   and export the filtered view to CSV. Tags render as chips. On a contact you can also **add a note
   verbatim (no AI)** and read the **full text** of any interaction via a "Full note" expander. Each
-  application carries an **outcome** (pending / interview / offer / rejected / ghosted / withdrawn)
-  that feeds the Dashboard's response-rate and offer-rate funnel.
+  application carries a single-pipeline **status** (applied → screening → interviewing → offer →
+  accepted / rejected / ghosted / withdrawn) that feeds the Dashboard's response-rate and offer-rate funnel.
 - **Search.** **Hybrid retrieval** — keyword scoring blended with OpenAI-embedding semantic
   similarity (build/refresh a cached vector index from the Search page; falls back to keyword-only
   without a key) — across contacts + applications + interactions, then Claude re-ranks and
@@ -216,7 +216,7 @@ metrics are shown on the **Dashboard → AI quality** panel.
   extraction-quality instrumentation (online correction rate + an offline gold-set benchmark).
 - **Agent safety:** a confirm-before-write action agent, an audit log, and persistent multi-step undo.
 - **Data quality:** contact dedup / merge, tag + priority normalisation, verbatim notes.
-- **Outcomes:** an application outcome funnel (response rate, offer rate) and a "Start here" onboarding block.
+- **Outcomes:** a single-pipeline application funnel (status → response rate, offer rate) and a "Start here" onboarding block.
 
 **Next:** driven by real usage — collect feedback ratings over a few weeks to populate the AI-quality
 metrics, then iterate on whatever the data shows is weakest. A possible net-new feature is résumé ↔ JD

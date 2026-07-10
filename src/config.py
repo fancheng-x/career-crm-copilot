@@ -69,15 +69,39 @@ USER_POSITIONING = (
 
 PRIORITY_LEVELS = ["high", "medium", "low"]
 RELATIONSHIP_STRENGTHS = ["warm", "cold", "met once"]
-APPLICATION_STATUSES = ["applied", "phone screen", "rejected", "offer"]
 
-# Application OUTCOME — the terminal disposition, a separate axis from the
-# pipeline `status`. "pending" = still open / no final result yet. Powers the
-# Dashboard funnel (response rate, offer rate) so the loop from AI-assisted
-# outreach to real job-search results can actually be measured.
-APPLICATION_OUTCOMES = ["pending", "interview", "offer", "rejected", "ghosted", "withdrawn"]
-OUTCOME_DISPLAY = {"pending": "Pending", "interview": "Interview", "offer": "Offer",
-                   "rejected": "Rejected", "ghosted": "Ghosted", "withdrawn": "Withdrawn"}
+# Single canonical application pipeline (stage + terminal result in one field),
+# in funnel order. Replaces the old split status/outcome model. Powers the
+# Dashboard funnel (response rate, offer rate).
+APPLICATION_STATUSES = [
+    "applied", "screening", "interviewing", "offer",   # open / in progress
+    "accepted", "rejected", "ghosted", "withdrawn",    # terminal
+]
+STATUS_DISPLAY = {
+    "applied": "Applied", "screening": "Screening", "interviewing": "Interviewing",
+    "offer": "Offer", "accepted": "Accepted", "rejected": "Rejected",
+    "ghosted": "Ghosted", "withdrawn": "Withdrawn",
+}
+# For funnel maths: a company responded (a rejection IS a response); "applied" =
+# still waiting, "ghosted" = no response; these two + "withdrawn" aren't "responses".
+RESPONDED_STATUSES = {"screening", "interviewing", "offer", "accepted", "rejected"}
+OFFER_STATUSES = {"offer", "accepted"}
+OPEN_STATUSES = {"applied", "screening", "interviewing", "offer"}
+
+# Map legacy / free-form status values onto the canonical set.
+_STATUS_ALIASES = {
+    "phone screen": "screening", "phone-screen": "screening", "screen": "screening",
+    "interview": "interviewing", "interviews": "interviewing",
+    "final round": "interviewing", "onsite": "interviewing", "": "applied",
+}
+
+
+def normalize_status(s):
+    """Canonicalise a single status value (maps legacy values forward)."""
+    k = (s or "").strip().lower()
+    if k in APPLICATION_STATUSES:
+        return k
+    return _STATUS_ALIASES.get(k, k or "applied")
 
 # Tag hygiene: map obvious variants to a canonical form (keys are lowercased).
 # Conservative on purpose — only clear equivalents, so custom tags survive.

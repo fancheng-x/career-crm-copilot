@@ -5,7 +5,7 @@ import json
 import streamlit as st
 
 from .. import db, exporting, ui
-from ..config import APPLICATION_OUTCOMES, OUTCOME_DISPLAY, APPLICATION_STATUSES
+from ..config import APPLICATION_STATUSES, STATUS_DISPLAY, normalize_status
 
 
 def _parse_list(raw):
@@ -70,16 +70,16 @@ def render():
     if st.session_state.get("app_sel_id") not in ids:
         st.session_state.app_sel_id = rows[0]["id"]
 
-    # Hide internal id; tags become a real list so they render as chips.
+    # Hide internal id + the retired `outcome` column; tags render as chips.
     display = [{k: (_parse_list(v) if k == "tags" else v)
-                for k, v in r.items() if k != "id"} for r in rows]
+                for k, v in r.items() if k not in ("id", "outcome")} for r in rows]
     event = st.dataframe(
         display, use_container_width=True, hide_index=True,
         on_select="rerun", selection_mode="single-row", key="apps_df",
         column_config={"tags": st.column_config.ListColumn("Tags")},
     )
 
-    export_rows = [{**{k: v for k, v in r.items() if k != "id"},
+    export_rows = [{**{k: v for k, v in r.items() if k not in ("id", "outcome")},
                     "tags": ", ".join(_parse_list(r.get("tags")))} for r in rows]
     st.download_button("⬇️ Export shown applications (CSV)",
                        data=exporting.to_csv_bytes(export_rows),
@@ -159,25 +159,24 @@ def _render_detail(app_id):
         st.caption(a["company"])
 
     cols = st.columns(3)
-    cols[0].markdown(f"**Status:** {a.get('status') or '—'}")
+    cols[0].markdown(f"**Status:** {STATUS_DISPLAY.get(normalize_status(a.get('status')), '—')}")
     cols[1].markdown(f"**Applied:** {a.get('applied_date') or '—'}")
     tags = _parse_list(a.get("tags"))
     cols[2].markdown("**Tags:** " + (ui.tag_chips(tags) if tags else "—"))
 
-    # Outcome — the terminal result, feeds the Dashboard funnel (response/offer rate).
-    cur = (a.get("outcome") or "pending").strip()
-    if cur not in APPLICATION_OUTCOMES:
-        cur = "pending"
+    # Status — the single pipeline field; drives the Dashboard funnel.
+    cur = normalize_status(a.get("status"))
     new = st.selectbox(
-        "Outcome", APPLICATION_OUTCOMES, index=APPLICATION_OUTCOMES.index(cur),
-        format_func=lambda o: OUTCOME_DISPLAY.get(o, o.title()),
-        key=f"outcome_{app_id}",
-        help="How this application ended. Drives the Dashboard's response & offer rates.",
+        "Status", APPLICATION_STATUSES,
+        index=APPLICATION_STATUSES.index(cur) if cur in APPLICATION_STATUSES else 0,
+        format_func=lambda s: STATUS_DISPLAY.get(s, s.title()),
+        key=f"status_{app_id}",
+        help="Where this application stands. Drives the Dashboard's response & offer rates.",
     )
     if new != cur:
         with db.get_conn() as conn:
-            db.set_application_field(conn, app_id, "outcome", new)
-        st.toast(f"Outcome → {OUTCOME_DISPLAY.get(new, new)}")
+            db.set_application_field(conn, app_id, "status", new)
+        st.toast(f"Status → {STATUS_DISPLAY.get(new, new)}")
         st.rerun()
 
     if a.get("fit_notes"):

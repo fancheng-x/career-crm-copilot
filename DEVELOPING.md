@@ -81,10 +81,12 @@ which normalises tags and handles attach-to-existing. Don't write a second save 
 against `_EDITABLE_*_FIELDS` sets before interpolating into SQL. Add a column to the whitelist to
 make it editable; the validation is what keeps the f-string injection-safe.
 
-**4. Additive, idempotent migrations.** New columns go in the `CREATE TABLE` in `SCHEMA` **and** in
-`_migrate()` (which `ALTER TABLE ADD COLUMN` if missing). New tables just need `CREATE TABLE IF NOT
-EXISTS` — `init_db()` runs the whole schema every start. See `outcome` (migrated) vs `extraction_eval`
-(new table) for the two cases.
+**4. Additive, idempotent migrations.** `_migrate()` handles three cases: a **new column** (`ALTER
+TABLE ADD COLUMN` if missing — see `outcome`); a **new table** (`CREATE TABLE IF NOT EXISTS` in
+`SCHEMA`, since `init_db()` runs the whole schema every start — see `extraction_eval`); and a
+**one-time data migration** that must not re-run (guard it with `PRAGMA user_version` — see the v1
+merge that folds the old `status`+`outcome` into a single `status`). Never rename/drop a column in
+place (SQLite makes it painful) — retire it and migrate its data forward.
 
 **5. Measured AI quality.** Two mechanisms, both write to `db` and surface on the Dashboard:
    - `db.add_feedback(kind, rating)` — the 👍/👎 widgets (`ui.feedback_widget`).
@@ -186,7 +188,7 @@ from src import db; db.DB_PATH = config.DB_PATH; db.init_db()
 "
 ```
 
-Pure logic (normalisers, the extraction diff, outcome-funnel math) is unit-testable this way —
+Pure logic (normalisers, the extraction diff, funnel math, the status migration) is unit-testable this way —
 prefer moving such logic out of the page modules so it can be tested without Streamlit.
 
 ---

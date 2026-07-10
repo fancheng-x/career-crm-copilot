@@ -10,7 +10,8 @@ import json
 import sqlite3
 from contextlib import contextmanager
 
-from .config import DB_PATH, normalize_tag, normalize_tags, normalize_priority
+from .config import (DB_PATH, normalize_tag, normalize_tags, normalize_priority,
+                     normalize_status, RESPONDED_STATUSES, OFFER_STATUSES, OPEN_STATUSES)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS contacts (
@@ -47,7 +48,7 @@ CREATE TABLE IF NOT EXISTS applications (
     applied_date TEXT,            -- ISO date
     fit_notes TEXT,
     tags TEXT,                    -- JSON array
-    outcome TEXT DEFAULT 'pending' -- terminal disposition (see config.APPLICATION_OUTCOMES)
+    outcome TEXT DEFAULT 'pending' -- RETIRED: folded into `status` by migration v1; unused
 );
 
 CREATE TABLE IF NOT EXISTS interactions (
@@ -153,11 +154,32 @@ def init_db():
     normalize_all_priorities()
 
 
+def _merge_status(status, outcome):
+    """Fold the legacy split (stage `status` + terminal `outcome`) into one value.
+    A meaningful outcome wins (it's the later truth); else map the old stage."""
+    o = (outcome or "").strip().lower()
+    override = {"interview": "interviewing", "offer": "offer", "rejected": "rejected",
+                "ghosted": "ghosted", "withdrawn": "withdrawn", "accepted": "accepted"}
+    if o in override:
+        return override[o]
+    return normalize_status(status)
+
+
 def _migrate(conn):
-    """Additive migrations for DBs created before a column existed. Idempotent."""
+    """Additive + one-time migrations. Idempotent (guarded by PRAGMA user_version)."""
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(applications)").fetchall()}
     if "outcome" not in cols:
         conn.execute("ALTER TABLE applications ADD COLUMN outcome TEXT DEFAULT 'pending'")
+
+    # v1: collapse status + outcome into a single canonical status. Runs once.
+    version = conn.execute("PRAGMA user_version").fetchone()[0]
+    if version < 1:
+        for r in conn.execute("SELECT id, status, outcome FROM applications").fetchall():
+            merged = _merge_status(r["status"], r["outcome"])
+            if merged != (r["status"] or ""):
+                conn.execute("UPDATE applications SET status = ? WHERE id = ?",
+                             (merged, r["id"]))
+        conn.execute("PRAGMA user_version = 1")
 
 
 def normalize_all_priorities():
@@ -501,31 +523,32 @@ def set_application_field(conn, application_id, field, value):
                  (value, application_id))
 
 
-def application_outcome_stats():
-    """Counts by outcome plus response & offer rates for the Dashboard funnel.
+def application_funnel_stats():
+    """Counts by status plus response & offer rates for the Dashboard funnel.
 
-    - response_rate = replies (interview/offer/rejected) / applications that were
-      "reachable" (those three + ghosted). Pending & withdrawn are excluded — you
-      can't have a response rate on apps that haven't resolved or you pulled out of.
-    - offer_rate    = offers / resolved applications (everything except pending &
-      withdrawn). Returns None for a rate when its denominator is 0.
+    - response_rate = replies (screening/interviewing/offer/accepted/rejected) /
+      applications that were "reachable" (those + ghosted). Still-"applied" (waiting)
+      and "withdrawn" are excluded — no response rate applies to them.
+    - offer_rate    = offers+accepted / resolved applications (everything except
+      still-"applied" and "withdrawn"). Rates are None when their denominator is 0.
     """
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT COALESCE(NULLIF(TRIM(outcome), ''), 'pending') AS o FROM applications"
+            "SELECT COALESCE(NULLIF(TRIM(status), ''), 'applied') AS s FROM applications"
         ).fetchall()
     counts = {}
     for r in rows:
-        counts[r["o"]] = counts.get(r["o"], 0) + 1
+        counts[normalize_status(r["s"])] = counts.get(normalize_status(r["s"]), 0) + 1
     total = sum(counts.values())
-    responded = counts.get("interview", 0) + counts.get("offer", 0) + counts.get("rejected", 0)
+    responded = sum(counts.get(k, 0) for k in RESPONDED_STATUSES)
     reachable = responded + counts.get("ghosted", 0)
-    resolved = total - counts.get("pending", 0) - counts.get("withdrawn", 0)
+    offers = sum(counts.get(k, 0) for k in OFFER_STATUSES)
+    resolved = total - counts.get("applied", 0) - counts.get("withdrawn", 0)
     return {
         "counts": counts,
         "total": total,
         "response_rate": (responded / reachable) if reachable else None,
-        "offer_rate": (counts.get("offer", 0) / resolved) if resolved else None,
+        "offer_rate": (offers / resolved) if resolved else None,
     }
 
 

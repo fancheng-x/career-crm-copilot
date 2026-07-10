@@ -9,7 +9,7 @@ import streamlit as st
 
 from .. import db, llm
 from ..config import (ANTHROPIC_API_KEY, normalize_priority, PRIORITY_DISPLAY,
-                      OUTCOME_DISPLAY)
+                      STATUS_DISPLAY, APPLICATION_STATUSES)
 
 
 def _parse_list(raw):
@@ -47,15 +47,17 @@ def _geo(app):
     return m.group(1).strip() if m else ""
 
 
-def _bar(title, mapping, top=None):
+def _bar(title, mapping, top=None, preserve_order=False):
     st.markdown(f"**{title}**")
     if not mapping:
         st.caption("No data yet.")
         return
-    items = sorted(mapping.items(), key=lambda kv: kv[1], reverse=True)
+    items = (list(mapping.items()) if preserve_order
+             else sorted(mapping.items(), key=lambda kv: kv[1], reverse=True))
     if top:
         items = items[:top]
     df = pd.DataFrame(items, columns=["label", "count"])
+    y_sort = [lab for lab, _ in items] if preserve_order else "-x"
     chart = (
         alt.Chart(df)
         .mark_bar(color="#2f8367", cornerRadiusEnd=3)
@@ -63,7 +65,7 @@ def _bar(title, mapping, top=None):
             x=alt.X("count:Q", title=None,
                     axis=alt.Axis(format="d", tickMinStep=1),
                     scale=alt.Scale(domainMin=0, nice=False)),
-            y=alt.Y("label:N", sort="-x", title=None,
+            y=alt.Y("label:N", sort=y_sort, title=None,
                     axis=alt.Axis(labelLimit=220)),
             tooltip=[alt.Tooltip("label:N", title="Category"),
                      alt.Tooltip("count:Q", title="Count")],
@@ -176,7 +178,7 @@ def render():
         _bar("Contacts by priority", pri)
 
     if applications:
-        _render_outcomes()
+        _render_funnel()
 
     st.divider()
     _render_quality()
@@ -291,12 +293,12 @@ def _render_digest():
         st.markdown(f"- {a}")
 
 
-def _render_outcomes():
-    """Funnel outcome panel: response rate, offer rate, and a breakdown bar."""
-    s = db.application_outcome_stats()
+def _render_funnel():
+    """Pipeline funnel: response rate, offer rate, and a by-status breakdown."""
+    s = db.application_funnel_stats()
     if not s["total"]:
         return
-    st.markdown("**🎯 Application outcomes**")
+    st.markdown("**🎯 Application funnel**")
     rr, orr = s["response_rate"], s["offer_rate"]
     m1, m2 = st.columns(2)
     with m1.container(border=True, key="scard_out_resp"):
@@ -305,9 +307,11 @@ def _render_outcomes():
     with m2.container(border=True, key="scard_out_offer"):
         st.metric("Offer rate", f"{orr * 100:.0f}%" if orr is not None else "No data")
         st.caption("offers ÷ resolved apps")
-    disp = {OUTCOME_DISPLAY.get(k, k.title()): v for k, v in s["counts"].items()}
-    _bar("By outcome", disp)
-    st.caption("Set an outcome on each row in 💼 Applications to populate this.")
+    # Breakdown in pipeline order (not sorted by count) so it reads as a funnel.
+    ordered = {STATUS_DISPLAY[k]: s["counts"][k]
+               for k in APPLICATION_STATUSES if s["counts"].get(k)}
+    _bar("By status", ordered, preserve_order=True)
+    st.caption("Set each application's status on the 💼 Applications page to keep this current.")
 
 
 _QUALITY_KINDS = [
